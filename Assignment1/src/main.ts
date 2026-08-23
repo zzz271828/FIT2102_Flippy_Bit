@@ -49,21 +49,21 @@ type State = Readonly<{
     targetRects: Array<TargetRect>;
 }>;
 
-
-
 const velocity = 2;
 
 type TargetRect = {
     // x: number;
     y: number;
     value: number;
+    onGround: boolean;
 };
 
 const tempTargetRect1: TargetRect = {
     // x: ,
     y: 40,
     value: 13,
-}
+    onGround: false,
+};
 
 const initialState: State = {
     gameEnd: false,
@@ -78,8 +78,13 @@ const initialState: State = {
  */
 const tick = (s: State) => {
     if (s.gameEnd) return s;
-    const newRects =  s.targetRects.map(rect => ({...rect, y: rect.y + velocity}));
-    const newState = {...s, targetRects: newRects};
+
+    const newRects = s.targetRects.map(rect => {
+        const hit = rect.y + Target.HEIGHT >= Viewport.CANVAS_HEIGHT;
+        if (hit) return { ...rect, onGround: hit };
+        return { ...rect, y: rect.y + velocity, onGround: hit };
+    });
+    const newState = { ...s, targetRects: newRects };
 
     return newState;
 };
@@ -92,7 +97,6 @@ const tick = (s: State) => {
  */
 const bringToForeground = (elem: SVGElement): void => {
     elem.parentNode?.appendChild(elem);
-     
 };
 
 /**
@@ -141,8 +145,7 @@ const render = (): ((s: State) => void) => {
         `0 0 ${Viewport.CANVAS_WIDTH} ${Viewport.CANVAS_HEIGHT}`,
     );
 
-
-    const targets = createSvgElement(svg.namespaceURI, "g") // group 
+    const targets = createSvgElement(svg.namespaceURI, "g"); // group
     svg.appendChild(targets);
     /**
      * Renders the current state to the canvas.
@@ -154,32 +157,31 @@ const render = (): ((s: State) => void) => {
     return (s: State) => {
         targets.replaceChildren();
         // Draw rectangle
-        s.targetRects.forEach((rect) => {
+        s.targetRects.forEach(rect => {
             const shape = createSvgElement(svg.namespaceURI, "rect", {
-            x: `${Viewport.CANVAS_WIDTH / 2 - Target.WIDTH / 2}`,
-            y: rect.y.toString(),
-            width: `${Target.WIDTH}`,
-            height: `${Target.HEIGHT}`,
-            rx: "6",
-            fill: "white",
-            stroke: "black",
-            "stroke-width": "2",
+                x: `${Viewport.CANVAS_WIDTH / 2 - Target.WIDTH / 2}`,
+                y: rect.y.toString(),
+                width: `${Target.WIDTH}`,
+                height: `${Target.HEIGHT}`,
+                rx: "6",
+                fill: "white",
+                stroke: "black",
+                "stroke-width": "2",
             });
 
             const text = createSvgElement(svg.namespaceURI, "text", {
-            x: `${Viewport.CANVAS_WIDTH / 2}`,
-            y: `${rect.y + Target.HEIGHT / 2 + 8}`,
-            "text-anchor": "middle",
-            "font-family": "monospace",
-            fill: "black",
+                x: `${Viewport.CANVAS_WIDTH / 2}`,
+                y: `${rect.y + Target.HEIGHT / 2 + 8}`,
+                "text-anchor": "middle",
+                "font-family": "monospace",
+                fill: "black",
             });
 
             text.textContent = rect.value.toString(16).toUpperCase();
 
             targets.appendChild(shape);
             targets.appendChild(text);
-        })
-
+        });
 
         // Draw the row of digit toggles as a demonstration
         const digitWidth = Viewport.CANVAS_WIDTH / Constants.DIGIT_COUNT;
