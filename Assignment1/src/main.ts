@@ -40,16 +40,34 @@ const Target = {
 
 const Constants = {
     DIGIT_COUNT: 8,
-    TICK_RATE_MS: 500, // Might need to change this!
+    TICK_RATE_MS: 20, // Might need to change this!
 } as const;
 
 // State processing
 type State = Readonly<{
     gameEnd: boolean;
+    targetRects: Array<TargetRect>;
 }>;
+
+
+
+const velocity = 2;
+
+type TargetRect = {
+    // x: number;
+    y: number;
+    value: number;
+};
+
+const tempTargetRect: TargetRect = {
+    // x: ,
+    y: 40,
+    value: 13,
+}
 
 const initialState: State = {
     gameEnd: false,
+    targetRects: [tempTargetRect],
 };
 
 /**
@@ -58,7 +76,13 @@ const initialState: State = {
  * @param s Current state
  * @returns Updated state
  */
-const tick = (s: State) => s;
+const tick = (s: State) => {
+    if (s.gameEnd) return s;
+    const newRects =  s.targetRects.map(rect => ({...rect, y: rect.y + velocity}));
+    const newState = {...s, targetRects: newRects};
+
+    return newState;
+};
 
 // Rendering (side effects)
 
@@ -68,6 +92,7 @@ const tick = (s: State) => s;
  */
 const bringToForeground = (elem: SVGElement): void => {
     elem.parentNode?.appendChild(elem);
+     
 };
 
 /**
@@ -175,7 +200,7 @@ export const state$ = (): Observable<State> => {
     /** Determines the rate of time steps */
     const tick$ = interval(Constants.TICK_RATE_MS);
 
-    return tick$.pipe(scan((s: State) => ({ gameEnd: false }), initialState));
+    return tick$.pipe(scan((s: State) => tick(s), initialState));
 };
 
 // The following simply runs your main function on window load.  Make sure to leave it in place.
