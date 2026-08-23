@@ -59,7 +59,7 @@ type TargetRect = {
     value: number;
 };
 
-const tempTargetRect: TargetRect = {
+const tempTargetRect1: TargetRect = {
     // x: ,
     y: 40,
     value: 13,
@@ -67,7 +67,7 @@ const tempTargetRect: TargetRect = {
 
 const initialState: State = {
     gameEnd: false,
-    targetRects: [tempTargetRect, tempTargetRect, tempTargetRect, tempTargetRect, tempTargetRect],
+    targetRects: [tempTargetRect1],
 };
 
 /**
@@ -142,31 +142,6 @@ const render = (): ((s: State) => void) => {
     );
 
 
-
-    // Draw the row of digit toggles as a demonstration
-    const digitWidth = Viewport.CANVAS_WIDTH / Constants.DIGIT_COUNT;
-    Array.from({ length: Constants.DIGIT_COUNT }).forEach((_, i) => {
-        const bit = createSvgElement(svg.namespaceURI, "rect", {
-            x: `${i * digitWidth + 4}`,
-            y: `${Viewport.CANVAS_HEIGHT - 50}`,
-            width: `${digitWidth - 8}`,
-            height: "40",
-            fill: "#ef9a9a",
-            stroke: "black",
-            "stroke-width": "2",
-        });
-        const bitText = createSvgElement(svg.namespaceURI, "text", {
-            x: `${i * digitWidth + digitWidth / 2}`,
-            y: `${Viewport.CANVAS_HEIGHT - 22}`,
-            "text-anchor": "middle",
-            "font-family": "monospace",
-            fill: "black",
-        });
-        bitText.textContent = "0";
-        svg.appendChild(bit);
-        svg.appendChild(bitText);
-    });
-
     const targets = createSvgElement(svg.namespaceURI, "g") // group 
     svg.appendChild(targets);
     /**
@@ -182,7 +157,7 @@ const render = (): ((s: State) => void) => {
         s.targetRects.forEach((rect) => {
             const shape = createSvgElement(svg.namespaceURI, "rect", {
             x: `${Viewport.CANVAS_WIDTH / 2 - Target.WIDTH / 2}`,
-            y: "40",
+            y: rect.y.toString(),
             width: `${Target.WIDTH}`,
             height: `${Target.HEIGHT}`,
             rx: "6",
@@ -193,7 +168,7 @@ const render = (): ((s: State) => void) => {
 
             const text = createSvgElement(svg.namespaceURI, "text", {
             x: `${Viewport.CANVAS_WIDTH / 2}`,
-            y: `${40 + Target.HEIGHT / 2 + 8}`,
+            y: `${rect.y + Target.HEIGHT / 2 + 8}`,
             "text-anchor": "middle",
             "font-family": "monospace",
             fill: "black",
@@ -204,6 +179,31 @@ const render = (): ((s: State) => void) => {
             targets.appendChild(shape);
             targets.appendChild(text);
         })
+
+
+        // Draw the row of digit toggles as a demonstration
+        const digitWidth = Viewport.CANVAS_WIDTH / Constants.DIGIT_COUNT;
+        Array.from({ length: Constants.DIGIT_COUNT }).forEach((_, i) => {
+            const bit = createSvgElement(svg.namespaceURI, "rect", {
+                x: `${i * digitWidth + 4}`,
+                y: `${Viewport.CANVAS_HEIGHT - 50}`,
+                width: `${digitWidth - 8}`,
+                height: "40",
+                fill: "#ef9a9a",
+                stroke: "black",
+                "stroke-width": "2",
+            });
+            const bitText = createSvgElement(svg.namespaceURI, "text", {
+                x: `${i * digitWidth + digitWidth / 2}`,
+                y: `${Viewport.CANVAS_HEIGHT - 22}`,
+                "text-anchor": "middle",
+                "font-family": "monospace",
+                fill: "black",
+            });
+            bitText.textContent = "0";
+            svg.appendChild(bit);
+            svg.appendChild(bitText);
+        });
     };
 };
 
