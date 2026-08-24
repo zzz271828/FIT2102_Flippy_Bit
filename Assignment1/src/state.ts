@@ -22,12 +22,16 @@ const initialState: State = {
     score: 0,
 };
 
+const reachCheckLine = (targets: ReadonlyArray<TargetRect>) => 
+    targets.length > 0 && targets[0].y + Target.HEIGHT >= Viewport.CANVAS_HEIGHT
+
+
+
 const rectsUpdatePos = (
     targets: ReadonlyArray<TargetRect>,
 ): ReadonlyArray<TargetRect> =>
     targets
-        .map(rect => ({ ...rect, y: rect.y + Constants.VELOCITY }))
-        .filter(rect => rect.y + Target.HEIGHT < Viewport.CANVAS_HEIGHT);
+        .map(rect => ({ ...rect, y: rect.y + Constants.VELOCITY }));
 
 const generateValue = (seed: number): number =>
     Math.floor(rangeScale(RNG.scale(seed), 0, Constants.MAX_VAL));
@@ -59,21 +63,25 @@ class Tick implements Action {
     apply(s: State): State {
         if (s.gameEnd) return s;
 
-        const filterPosRects = rectsUpdatePos(s.targetRects);
+        const newPosRects = rectsUpdatePos(s.targetRects);
 
-        const checkRes = check(s.playerInput, filterPosRects),
+        if (reachCheckLine(newPosRects)) return {...s, gameEnd: true};
+
+        const checkRes = check(s.playerInput, newPosRects),
             newScore = checkRes ? s.score + 1 : s.score,
-            filterRectsFinal = checkRes
-                ? filterPosRects.slice(1)
-                : filterPosRects,
-            newTickCount = s.tickCount + 1;
+            filterRects = checkRes
+                ? newPosRects.slice(1)
+                : newPosRects,
+            newTickCount = s.tickCount + 1,
+            newPlayerInput = checkRes? Constants.EMPTY_PLAYER_INPUT : s.playerInput;
 
         if (newTickCount < s.nextSpawn) {
             const newState = {
                 ...s,
-                targetRects: filterRectsFinal,
+                targetRects: filterRects,
                 tickCount: newTickCount,
                 score: newScore,
+                playerInput: newPlayerInput,
             };
             return newState;
         }
@@ -86,12 +94,13 @@ class Tick implements Action {
             },
             newState = {
                 ...s,
-                targetRects: [...filterRectsFinal, newTarget],
+                targetRects: [...filterRects, newTarget],
                 seedVal: newSeedVal,
                 seedGap: newSeedGap,
                 tickCount: 0,
                 nextSpawn: generateGap(newSeedGap),
                 score: newScore,
+                playerInput: newPlayerInput,
             };
 
         return newState;

@@ -24,6 +24,7 @@ const Constants = {
     SEED_VAL: 10,
     SEED_GAP: 11,
     MAX_VAL: 255,
+    EMPTY_PLAYER_INPUT: [0, 0, 0, 0, 0, 0, 0, 0]
 } as const;
 
 
