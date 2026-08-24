@@ -39,6 +39,8 @@ const render = (): ((s: State) => void) => {
 
     const digitWidth = Viewport.CANVAS_WIDTH / Constants.DIGIT_COUNT;
 
+    const score = document.getElementById("scoreText");
+
     /**
      * Renders the current state to the canvas.
      *
@@ -98,5 +100,7 @@ const render = (): ((s: State) => void) => {
             bits.appendChild(bit);
             bits.appendChild(bitText);
         });
+
+        score!.innerHTML = s.score.toString();
     };
 };

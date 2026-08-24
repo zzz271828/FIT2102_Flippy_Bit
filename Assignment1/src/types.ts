@@ -19,10 +19,10 @@ const Constants = {
     TICK_RATE_MS: 20, // Might need to change this!
     SPAWN_TO_TICK_MIN: 50,
     SPAWN_TO_TICK_MAX: 150,
-    VELOCITY: 2,
+    VELOCITY: 1,
     SPAWN_Y: 40,
-    SEED_VAL: 0,
-    SEED_GAP: 1,
+    SEED_VAL: 10,
+    SEED_GAP: 11,
     MAX_VAL: 255,
 } as const;
 
@@ -44,6 +44,7 @@ type State = Readonly<{
     nextSpawn: number;
 
     playerInput: ReadonlyArray<number>;
+    score: number;
 }>;
 
 type Event = 'keydown' | 'keyup';

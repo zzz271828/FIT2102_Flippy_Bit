@@ -1,7 +1,8 @@
 import { Observable } from "rxjs";
 import { scan, map } from "rxjs/operators";
+import {State} from "./types"
 
-export { RNG, createRngStreamFromSource, rangeScale };
+export { RNG, createRngStreamFromSource, rangeScale, check };
 
 /** random number **/
 /**
@@ -44,4 +45,13 @@ function createRngStreamFromSource<T>(source$: Observable<T>) {
 
 function rangeScale(num: number, floor: number, ceiling: number): number {
     return floor + ((num + 1) / 2) * (ceiling - floor);
+}
+
+
+function check(s: State): boolean {
+    if (s.targetRects.length === 0) return false;
+    const playerInputVal = s.playerInput.reduce((acc, bit) => acc * 2 + bit, 0);
+    const lowestRectVal = s.targetRects[0].value;
+
+    return playerInputVal === lowestRectVal;
 }
