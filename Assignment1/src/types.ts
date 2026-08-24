@@ -21,7 +21,8 @@ const Constants = {
     SPAWN_TO_TICK_MAX: 150,
     VELOCITY: 2,
     SPAWN_Y: 40,
-    SEED: 2102,
+    SEED_VAL: 0,
+    SEED_GAP: 1,
     MAX_VAL: 255,
 } as const;
 
@@ -38,7 +39,8 @@ type State = Readonly<{
     gameEnd: boolean;
     targetRects: ReadonlyArray<TargetRect>;
     tickCount: number;
-    seed: number;
+    seedVal: number;
+    seedGap: number;
     nextSpawn: number;
 }>;
 

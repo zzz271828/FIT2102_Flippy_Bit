@@ -1,6 +1,5 @@
 export { initialState, reduceState, Tick, Spawn };
 
-    import { C } from "vitest/dist/chunks/reporters.d.BFLkQcL6.js";
 import {
     State,
     Action,
@@ -15,7 +14,8 @@ import { RNG, createRngStreamFromSource, rangeScale } from "./util";
 const initialState: State = {
     gameEnd: false,
     targetRects: [],
-    seed: Constants.SEED,
+    seedVal: Constants.SEED_VAL,
+    seedGap: Constants.SEED_GAP,
     tickCount: 0,
     nextSpawn: Constants.SPAWN_TO_TICK_MIN,
 };
@@ -51,9 +51,10 @@ class Tick implements Action {
             return newState;
         }
 
-        const newSeed = RNG.hash(s.seed);
-        const newTarget: TargetRect = {y: Constants.SPAWN_Y, value: generateValue(newSeed)};
-        const newState = { ...s, targetRects: [...filteredRects, newTarget], seed: newSeed, tickCount: 0, nextSpawn: generateGap(newSeed)};
+        const newSeedVal = RNG.hash(s.seedVal);
+        const newSeedGap = RNG.hash(s.seedGap);
+        const newTarget: TargetRect = {y: Constants.SPAWN_Y, value: generateValue(newSeedVal)};
+        const newState = { ...s, targetRects: [...filteredRects, newTarget], seedVal: newSeedVal, seedGap: newSeedGap, tickCount: 0, nextSpawn: generateGap(newSeedGap)};
 
         return newState;
     }
