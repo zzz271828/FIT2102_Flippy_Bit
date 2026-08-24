@@ -14,9 +14,14 @@ import { RNG, createRngStreamFromSource, rangeScale } from "./util";
 const initialState: State = {
     gameEnd: false,
     targetRects: [],
+    velocity: Constants.VELOCITY,
+
     seedVal: Constants.SEED_VAL,
     seedGap: Constants.SEED_GAP,
+
     tickCount: 0,
+    spawnCount: 0,
+
     nextSpawn: Constants.SPAWN_TO_TICK_MIN,
     playerInput: [0, 0, 0, 0, 0, 0, 0, 0],
     score: 0,
@@ -29,9 +34,10 @@ const reachCheckLine = (targets: ReadonlyArray<TargetRect>) =>
 
 const rectsUpdatePos = (
     targets: ReadonlyArray<TargetRect>,
+    velocity: number
 ): ReadonlyArray<TargetRect> =>
     targets
-        .map(rect => ({ ...rect, y: rect.y + Constants.VELOCITY }));
+        .map(rect => ({ ...rect, y: rect.y + velocity }));
 
 const generateValue = (seed: number): number =>
     Math.floor(rangeScale(RNG.scale(seed), 0, Constants.MAX_VAL));
@@ -63,17 +69,18 @@ class Tick implements Action {
     apply(s: State): State {
         if (s.gameEnd) return s;
 
-        const newPosRects = rectsUpdatePos(s.targetRects);
+        const newPosRects = rectsUpdatePos(s.targetRects, s.velocity);
 
         if (reachCheckLine(newPosRects)) return {...s, gameEnd: true};
 
-        const checkRes = check(s.playerInput, newPosRects),
-            newScore = checkRes ? s.score + 1 : s.score,
-            filterRects = checkRes
+        const checkInputRes = check(s.playerInput, newPosRects),
+            newScore = checkInputRes ? s.score + 1 : s.score,
+            filterRects = checkInputRes
                 ? newPosRects.slice(1)
                 : newPosRects,
             newTickCount = s.tickCount + 1,
-            newPlayerInput = checkRes? Constants.EMPTY_PLAYER_INPUT : s.playerInput;
+            newPlayerInput = checkInputRes? Constants.EMPTY_PLAYER_INPUT : s.playerInput;
+
 
         if (newTickCount < s.nextSpawn) {
             const newState = {
@@ -84,7 +91,11 @@ class Tick implements Action {
                 playerInput: newPlayerInput,
             };
             return newState;
-        }
+        } 
+
+        const 
+            newSpawnCount = s.spawnCount + 1,
+            checkAccRes = newSpawnCount >= Constants.ACC_COUNT;
 
         const newSeedVal = RNG.hash(s.seedVal),
             newSeedGap = RNG.hash(s.seedGap),
@@ -101,6 +112,8 @@ class Tick implements Action {
                 nextSpawn: generateGap(newSeedGap),
                 score: newScore,
                 playerInput: newPlayerInput,
+                velocity: checkAccRes? s.velocity + Constants.ACCELERATION: s.velocity,
+                spawnCount: checkAccRes? 0: newSpawnCount
             };
 
         return newState;
@@ -132,4 +145,7 @@ const reduceState = (s: State, action: Action): State => action.apply(s);
  * 23: 00100011 (3, 7, 8)
  * DB: 11011011 (1, 2, 4, 5, 7, 8)
  * 2:  00000010 (7)
+ * B5: 10110101 (1, 3, 4, 6, 8)
+ * 99: 10011001 (1, 4, 5, 8)
+ * 78: 01111000 (2, 3, 4, 5)
  */

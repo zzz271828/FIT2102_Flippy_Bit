@@ -19,12 +19,14 @@ const Constants = {
     TICK_RATE_MS: 20, // Might need to change this!
     SPAWN_TO_TICK_MIN: 50,
     SPAWN_TO_TICK_MAX: 150,
-    VELOCITY: 1,
+    VELOCITY: 0.7,
     SPAWN_Y: 40,
     SEED_VAL: 10,
     SEED_GAP: 11,
     MAX_VAL: 255,
-    EMPTY_PLAYER_INPUT: [0, 0, 0, 0, 0, 0, 0, 0]
+    EMPTY_PLAYER_INPUT: [0, 0, 0, 0, 0, 0, 0, 0],
+    ACC_COUNT: 5, // the accelaration happens every ACC_COUNT spawn
+    ACCELERATION: 0.1,
 } as const;
 
 
@@ -39,8 +41,12 @@ type TargetRect = Readonly<{
 type State = Readonly<{
     gameEnd: boolean;
     targetRects: ReadonlyArray<TargetRect>;
+    velocity: number;
+
     tickCount: number;
+    spawnCount: number
     seedVal: number;
+
     seedGap: number;
     nextSpawn: number;
 
