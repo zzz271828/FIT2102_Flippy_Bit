@@ -27,11 +27,10 @@ import {
     merge,
 } from "rxjs";
 
-import { Action, State, TargetRect, Constants } from "./types";
-import { initialState, reduceState, Tick, Spawn } from "./state";
+import { Action, State, TargetRect, Event, Key, Constants } from "./types";
+import { initialState, reduceState, Tick, Spawn, Flip } from "./state";
 import { createRngStreamFromSource, rangeScale } from "./util";
 import { render } from "./view";
-
 
 // Rendering (side effects)
 
@@ -61,15 +60,32 @@ const hide = (elem: SVGElement): void => {
 };
 
 function flippyBit() {
+    const keys: ReadonlyArray<Key> = [
+        "Digit1",
+        "Digit2",
+        "Digit3",
+        "Digit4",
+        "Digit5",
+        "Digit6",
+        "Digit7",
+        "Digit8",
+    ];
     const tick$: Observable<Action> = interval(Constants.TICK_RATE_MS).pipe(
-        map(() => new Tick()),
-    );
+            map(() => new Tick()),
+        ),
+        key$ = (e: Event, k: Key) =>
+            fromEvent<KeyboardEvent>(document, e).pipe(
+                filter(({ code }) => code === k),
+                filter(({ repeat }) => !repeat),
+            ),
+        flips$ = merge(
+            ...keys.map((key, index) =>
+                key$("keydown", key).pipe(map(() => new Flip(index))),
+            ),
+        ),
+        state$: Observable<State> = merge(tick$, flips$).pipe(scan(reduceState, initialState)),
+        click$ = fromEvent(document.body, "mousedown").pipe(take(1));
 
-    const state$: Observable<State> = tick$.pipe(
-        scan(reduceState, initialState),
-    );
-
-    const click$ = fromEvent(document.body, "mousedown").pipe(take(1));
     click$.pipe(switchMap(() => state$)).subscribe(render());
 }
 

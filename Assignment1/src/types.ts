@@ -1,5 +1,5 @@
 export {Viewport, Target, Constants};
-export type {TargetRect, State, Action};
+export type {TargetRect, State, Event, Key, Action};
 
 
 /** Constants */
@@ -42,8 +42,13 @@ type State = Readonly<{
     seedVal: number;
     seedGap: number;
     nextSpawn: number;
+
+    playerInput: ReadonlyArray<number>;
 }>;
 
+type Event = 'keydown' | 'keyup';
+
+type Key = 'Digit1' | 'Digit2' | 'Digit3' | 'Digit4' | 'Digit5' | 'Digit6' | 'Digit7' | 'Digit8';
 
 /**
  * Actions modify state
@@ -51,3 +56,5 @@ type State = Readonly<{
 interface Action {
   apply(s: State): State;
 }
+
+

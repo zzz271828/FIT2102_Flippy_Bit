@@ -1,4 +1,4 @@
-export { initialState, reduceState, Tick, Spawn };
+export { initialState, reduceState, Tick, Spawn, Flip };
 
 import {
     State,
@@ -18,6 +18,7 @@ const initialState: State = {
     seedGap: Constants.SEED_GAP,
     tickCount: 0,
     nextSpawn: Constants.SPAWN_TO_TICK_MIN,
+    playerInput: [0, 0, 0, 0, 0, 0, 0, 0]
 };
 
 const rectsUpdtaes = (targets: ReadonlyArray<TargetRect>): ReadonlyArray<TargetRect> =>
@@ -44,10 +45,10 @@ class Tick implements Action {
         if (s.gameEnd) return s;
 
         const filteredRects = rectsUpdtaes(s.targetRects);
-        const newtickCount = s.tickCount + 1;
+        const newTickCount = s.tickCount + 1;
 
-        if(newtickCount < s.nextSpawn) {
-            const newState = { ...s, targetRects: filteredRects, tickCount: newtickCount };
+        if(newTickCount < s.nextSpawn) {
+            const newState = { ...s, targetRects: filteredRects, tickCount: newTickCount };
             return newState;
         }
 
@@ -66,6 +67,15 @@ class Spawn implements Action {
     apply(s: State): State {
         return { ...s, targetRects: [...s.targetRects, this.target] };
     }
+}
+
+class Flip implements Action {
+    constructor(private readonly index: number) {}   // starts from 0 mf
+    apply(s: State): State {
+        const newbits = s.playerInput.map((bit, index) => index === this.index ? (1 - bit) : bit)
+        return {...s, playerInput: newbits}
+    }
+    
 }
 
 // TODO: i don't know why add this but it's from the workshop game. they added this and it works nice

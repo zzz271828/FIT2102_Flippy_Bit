@@ -34,28 +34,10 @@ const render = (): ((s: State) => void) => {
     const targets = createSvgElement(svg.namespaceURI, "g"); // group
     svg.appendChild(targets);
 
+    const bits = createSvgElement(svg.namespaceURI, "g"); // the thing is that if we don't add this, then we are creating a et of bits everytick and never remove
+    svg.appendChild(bits);
+
     const digitWidth = Viewport.CANVAS_WIDTH / Constants.DIGIT_COUNT;
-    Array.from({ length: Constants.DIGIT_COUNT }).forEach((_, i) => {
-        const bit = createSvgElement(svg.namespaceURI, "rect", {
-            x: `${i * digitWidth + 4}`,
-            y: `${Viewport.CANVAS_HEIGHT - 50}`,
-            width: `${digitWidth - 8}`,
-            height: "40",
-            fill: "#ef9a9a",
-            stroke: "black",
-            "stroke-width": "2",
-        });
-        const bitText = createSvgElement(svg.namespaceURI, "text", {
-            x: `${i * digitWidth + digitWidth / 2}`,
-            y: `${Viewport.CANVAS_HEIGHT - 22}`,
-            "text-anchor": "middle",
-            "font-family": "monospace",
-            fill: "black",
-        });
-        bitText.textContent = "0";
-        svg.appendChild(bit);
-        svg.appendChild(bitText);
-    });
 
     /**
      * Renders the current state to the canvas.
@@ -66,6 +48,7 @@ const render = (): ((s: State) => void) => {
      */
     return (s: State) => {
         targets.replaceChildren();
+        bits.replaceChildren();
         // Draw rectangle
         s.targetRects.forEach(rect => {
             const shape = createSvgElement(svg.namespaceURI, "rect", {
@@ -91,6 +74,29 @@ const render = (): ((s: State) => void) => {
 
             targets.appendChild(shape);
             targets.appendChild(text);
+        });
+
+
+        Array.from({ length: Constants.DIGIT_COUNT }).forEach((_, i) => {
+            const bit = createSvgElement(svg.namespaceURI, "rect", {
+                x: `${i * digitWidth + 4}`,
+                y: `${Viewport.CANVAS_HEIGHT - 50}`,
+                width: `${digitWidth - 8}`,
+                height: "40",
+                fill: "#ef9a9a",
+                stroke: "black",
+                "stroke-width": "2",
+            });
+            const bitText = createSvgElement(svg.namespaceURI, "text", {
+                x: `${i * digitWidth + digitWidth / 2}`,
+                y: `${Viewport.CANVAS_HEIGHT - 22}`,
+                "text-anchor": "middle",
+                "font-family": "monospace",
+                fill: "black",
+            });
+            bitText.textContent = s.playerInput[i].toString();
+            bits.appendChild(bit);
+            bits.appendChild(bitText);
         });
     };
 };
