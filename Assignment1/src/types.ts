@@ -17,10 +17,12 @@ const Target = {
 const Constants = {
     DIGIT_COUNT: 8,
     TICK_RATE_MS: 20, // Might need to change this!
-    SPAWN_RATE_MS: 1000,
+    SPAWN_TO_TICK_MIN: 50,
+    SPAWN_TO_TICK_MAX: 150,
     VELOCITY: 2,
     SPAWN_Y: 40,
-    SEED: 2102
+    SEED: 2102,
+    MAX_VAL: 255,
 } as const;
 
 
@@ -29,13 +31,15 @@ type TargetRect = Readonly<{
     // x: number;
     y: number;
     value: number;
-    onGround: boolean;
 }>;
 
 // State processing
 type State = Readonly<{
     gameEnd: boolean;
     targetRects: ReadonlyArray<TargetRect>;
+    tickCount: number;
+    seed: number;
+    nextSpawn: number;
 }>;
 
 

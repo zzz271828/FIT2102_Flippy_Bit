@@ -65,21 +65,7 @@ function flippyBit() {
         map(() => new Tick()),
     );
 
-    const spawn$: Observable<Action> = createRngStreamFromSource(
-        interval(Constants.SPAWN_RATE_MS),
-    )(Constants.SEED).pipe(
-        map(num => Math.floor(rangeScale(num, 0, 255))),
-        map(
-            (value): TargetRect => ({
-                y: Constants.SPAWN_Y,
-                value,
-                onGround: false,
-            }),
-        ),
-        map(target => new Spawn(target)),
-    );
-
-    const state$: Observable<State> = merge(tick$, spawn$).pipe(
+    const state$: Observable<State> = tick$.pipe(
         scan(reduceState, initialState),
     );
 

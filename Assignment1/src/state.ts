@@ -1,5 +1,6 @@
 export { initialState, reduceState, Tick, Spawn };
 
+    import { C } from "vitest/dist/chunks/reporters.d.BFLkQcL6.js";
 import {
     State,
     Action,
@@ -9,28 +10,50 @@ import {
     Viewport,
 } from "./types";
 
+import { RNG, createRngStreamFromSource, rangeScale } from "./util";
+
 const initialState: State = {
     gameEnd: false,
     targetRects: [],
+    seed: Constants.SEED,
+    tickCount: 0,
+    nextSpawn: Constants.SPAWN_TO_TICK_MIN,
 };
 
+const rectsUpdtaes = (targets: ReadonlyArray<TargetRect>): ReadonlyArray<TargetRect> =>
+    targets
+        .map(rect => ({ ...rect, y: rect.y + Constants.VELOCITY }))
+        .filter(rect => rect.y + Target.HEIGHT < Viewport.CANVAS_HEIGHT);
+
+
+const generateValue = (seed: number): number =>
+    Math.floor(rangeScale(RNG.scale(seed), 0, Constants.MAX_VAL));
+
 /**
- * Updates the state by proceeding with one time step.
- *
- * @param s Current state
- * @returns Updated state
+ * Turns a seed into a random spawn gap in [MIN, MAX] ticks.
  */
+const generateGap = (seed: number): number =>
+    Math.floor(
+        rangeScale(RNG.scale(seed), Constants.SPAWN_TO_TICK_MIN, Constants.SPAWN_TO_TICK_MAX),
+    );
+
+
+
 class Tick implements Action {
     apply(s: State): State {
         if (s.gameEnd) return s;
 
-        const newRects = s.targetRects.map(rect => {
-            const hit = rect.y + Target.HEIGHT >= Viewport.CANVAS_HEIGHT;
-            return hit
-                ? { ...rect, onGround: hit }
-                : { ...rect, y: rect.y + Constants.VELOCITY, onGround: hit };
-        });
-        const newState = { ...s, targetRects: newRects };
+        const filteredRects = rectsUpdtaes(s.targetRects);
+        const newtickCount = s.tickCount + 1;
+
+        if(newtickCount < s.nextSpawn) {
+            const newState = { ...s, targetRects: filteredRects, tickCount: newtickCount };
+            return newState;
+        }
+
+        const newSeed = RNG.hash(s.seed);
+        const newTarget: TargetRect = {y: Constants.SPAWN_Y, value: generateValue(newSeed)};
+        const newState = { ...s, targetRects: [...filteredRects, newTarget], seed: newSeed, tickCount: 0, nextSpawn: generateGap(newSeed)};
 
         return newState;
     }
