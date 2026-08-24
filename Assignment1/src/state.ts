@@ -9,7 +9,7 @@ import {
     Viewport,
 } from "./types";
 
-import { RNG, createRngStreamFromSource, rangeScale, check } from "./util";
+import { RNG, createRngStreamFromSource, rangeScale } from "./util";
 
 const initialState: State = {
     gameEnd: false,
@@ -22,11 +22,12 @@ const initialState: State = {
     score: 0,
 };
 
-const rectsUpdate = (targets: ReadonlyArray<TargetRect>): ReadonlyArray<TargetRect> =>
+const rectsUpdatePos = (
+    targets: ReadonlyArray<TargetRect>,
+): ReadonlyArray<TargetRect> =>
     targets
         .map(rect => ({ ...rect, y: rect.y + Constants.VELOCITY }))
         .filter(rect => rect.y + Target.HEIGHT < Viewport.CANVAS_HEIGHT);
-
 
 const generateValue = (seed: number): number =>
     Math.floor(rangeScale(RNG.scale(seed), 0, Constants.MAX_VAL));
@@ -36,30 +37,62 @@ const generateValue = (seed: number): number =>
  */
 const generateGap = (seed: number): number =>
     Math.floor(
-        rangeScale(RNG.scale(seed), Constants.SPAWN_TO_TICK_MIN, Constants.SPAWN_TO_TICK_MAX),
+        rangeScale(
+            RNG.scale(seed),
+            Constants.SPAWN_TO_TICK_MIN,
+            Constants.SPAWN_TO_TICK_MAX,
+        ),
     );
 
+function check(
+    playerInput: ReadonlyArray<number>,
+    rects: ReadonlyArray<TargetRect>,
+): boolean {
+    if (rects.length === 0) return false;
+    const playerInputVal = playerInput.reduce((acc, bit) => acc * 2 + bit, 0);
+    const lowestRectVal = rects[0].value;
 
+    return playerInputVal === lowestRectVal;
+}
 
 class Tick implements Action {
     apply(s: State): State {
         if (s.gameEnd) return s;
 
-        const checkRes = check(s);
+        const filterPosRects = rectsUpdatePos(s.targetRects);
 
-        const filteredRects = checkRes? rectsUpdate(s.targetRects).slice(1): rectsUpdate(s.targetRects);
-        const newScore = checkRes? s.score + 1: s.score;
-        const newTickCount = s.tickCount + 1;
+        const checkRes = check(s.playerInput, filterPosRects),
+            newScore = checkRes ? s.score + 1 : s.score,
+            filterRectsFinal = checkRes
+                ? filterPosRects.slice(1)
+                : filterPosRects,
+            newTickCount = s.tickCount + 1;
 
-        if(newTickCount < s.nextSpawn) {
-            const newState = { ...s, targetRects: filteredRects, tickCount: newTickCount, score: newScore };
+        if (newTickCount < s.nextSpawn) {
+            const newState = {
+                ...s,
+                targetRects: filterRectsFinal,
+                tickCount: newTickCount,
+                score: newScore,
+            };
             return newState;
         }
 
-        const newSeedVal = RNG.hash(s.seedVal);
-        const newSeedGap = RNG.hash(s.seedGap);
-        const newTarget: TargetRect = {y: Constants.SPAWN_Y, value: generateValue(newSeedVal)};
-        const newState = { ...s, targetRects: [...filteredRects, newTarget], seedVal: newSeedVal, seedGap: newSeedGap, tickCount: 0, nextSpawn: generateGap(newSeedGap), score: newScore};
+        const newSeedVal = RNG.hash(s.seedVal),
+            newSeedGap = RNG.hash(s.seedGap),
+            newTarget: TargetRect = {
+                y: Constants.SPAWN_Y,
+                value: generateValue(newSeedVal),
+            },
+            newState = {
+                ...s,
+                targetRects: [...filterRectsFinal, newTarget],
+                seedVal: newSeedVal,
+                seedGap: newSeedGap,
+                tickCount: 0,
+                nextSpawn: generateGap(newSeedGap),
+                score: newScore,
+            };
 
         return newState;
     }
@@ -74,17 +107,17 @@ class Spawn implements Action {
 }
 
 class Flip implements Action {
-    constructor(private readonly index: number) {}   // starts from 0 mf
+    constructor(private readonly index: number) {} // starts from 0 mf
     apply(s: State): State {
-        const newbits = s.playerInput.map((bit, index) => index === this.index ? (1 - bit) : bit)
-        return {...s, playerInput: newbits}
+        const newbits = s.playerInput.map((bit, index) =>
+            index === this.index ? 1 - bit : bit,
+        );
+        return { ...s, playerInput: newbits };
     }
-    
 }
 
 // TODO: i don't know why add this but it's from the workshop game. they added this and it works nice
 const reduceState = (s: State, action: Action): State => action.apply(s);
-
 
 /**
  * 23: 00100011 (3, 7, 8)
