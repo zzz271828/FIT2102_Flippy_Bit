@@ -113,6 +113,7 @@ const render = (): ((s: State) => void) => {
                 fill: "#ef9a9a",
                 stroke: "black",
                 "stroke-width": "2",
+                "index": i.toString(),
             });
             const bitText = createSvgElement(svg.namespaceURI, "text", {
                 x: `${i * digitWidth + digitWidth / 2}`,
@@ -120,6 +121,7 @@ const render = (): ((s: State) => void) => {
                 "text-anchor": "middle",
                 "font-family": "monospace",
                 fill: "black",
+                "pointer-events": "none",
             });
             bitText.textContent = s.playerInput[i].toString();
             bits.appendChild(bit);

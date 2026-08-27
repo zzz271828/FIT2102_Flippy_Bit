@@ -29,10 +29,11 @@ import {
 
 import { Action, State, TargetRect, Event, Key, Constants } from "./types";
 import { initialState, reduceState, Tick, Spawn, Flip } from "./state";
-import { createRngStreamFromSource, rangeScale } from "./util";
+import { createRngStreamFromSource, rangeScale, getIndex } from "./util";
 import { render } from "./view";
 
 function flippyBit() {
+    const svgCanvas = document.querySelector("#svgCanvas") as SVGSVGElement;
     const keys: ReadonlyArray<Key> = [
         "Digit1",
         "Digit2",
@@ -46,15 +47,21 @@ function flippyBit() {
     const tick$: Observable<Action> = interval(Constants.TICK_RATE_MS).pipe(
             map(() => new Tick()),
         ),
-        key$ = (e: Event, k: Key) =>
+        mouseFlip$ = fromEvent<MouseEvent>(svgCanvas, "mousedown").pipe(
+            map(getIndex), // could be number or null
+            filter(index => index !== null),
+            map(index => new Flip(index))
+        ),
+        keyFlip$ = (e: Event, k: Key) =>
             fromEvent<KeyboardEvent>(document, e).pipe(
                 filter(({ code }) => code === k),
                 filter(({ repeat }) => !repeat),
             ),
         flips$ = merge(
             ...keys.map((key, index) =>
-                key$("keydown", key).pipe(map(() => new Flip(index))),
+                keyFlip$("keydown", key).pipe(map(() => new Flip(index))),
             ),
+            mouseFlip$
         ),
         state$: Observable<State> = merge(tick$, flips$).pipe(scan(reduceState, initialState)),
         click$ = fromEvent(document.body, "mousedown").pipe(take(1));

@@ -2,7 +2,7 @@ import { Observable } from "rxjs";
 import { scan, map } from "rxjs/operators";
 import {State} from "./types"
 
-export { RNG, createRngStreamFromSource, rangeScale };
+export { RNG, createRngStreamFromSource, rangeScale, getIndex };
 
 /** random number **/
 /**
@@ -46,3 +46,13 @@ function createRngStreamFromSource<T>(source$: Observable<T>) {
 function rangeScale(num: number, floor: number, ceiling: number): number {
     return floor + ((num + 1) / 2) * (ceiling - floor);
 }
+
+function getIndex(event: MouseEvent): number | null {
+    const target = event.target;
+    if (target instanceof SVGElement) {
+        const index = target.getAttribute("index");
+        return index === null ? null : Number(index);
+    }
+    return null;
+}
+
