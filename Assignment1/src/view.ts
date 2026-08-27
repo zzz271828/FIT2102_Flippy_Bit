@@ -56,15 +56,14 @@ const render = (): ((s: State) => void) => {
         `0 0 ${Viewport.CANVAS_WIDTH} ${Viewport.CANVAS_HEIGHT}`,
     );
 
-    const targets = createSvgElement(svg.namespaceURI, "g"); // group
+    const targets = createSvgElement(svg.namespaceURI, "g"), // group
+          bits = createSvgElement(svg.namespaceURI, "g"), // the thing is that if we don't add this, then we are creating a et of bits everytick and never remove
+          digitWidth = Viewport.CANVAS_WIDTH / Constants.DIGIT_COUNT,
+          score = document.getElementById("scoreText");
+
+
     svg.appendChild(targets);
-
-    const bits = createSvgElement(svg.namespaceURI, "g"); // the thing is that if we don't add this, then we are creating a et of bits everytick and never remove
     svg.appendChild(bits);
-
-    const digitWidth = Viewport.CANVAS_WIDTH / Constants.DIGIT_COUNT;
-
-    const score = document.getElementById("scoreText");
 
     /**
      * Renders the current state to the canvas.

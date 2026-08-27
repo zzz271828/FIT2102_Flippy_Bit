@@ -1,4 +1,4 @@
-export { initialState, reduceState, Tick, Spawn, Flip };
+export { initialState, reduceState, Tick, Spawn, Flip, Restart };
 
 import {
     State,
@@ -135,6 +135,12 @@ class Flip implements Action {
             index === this.index ? 1 - bit : bit,
         );
         return { ...s, playerInput: newbits };
+    }
+}
+
+class Restart implements Action {
+    apply(_: State): State {
+        return initialState;
     }
 }
 

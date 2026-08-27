@@ -25,10 +25,11 @@ import {
     switchMap,
     take,
     merge,
+    startWith,
 } from "rxjs";
 
 import { Action, State, TargetRect, Event, Key, Constants } from "./types";
-import { initialState, reduceState, Tick, Spawn, Flip } from "./state";
+import { initialState, reduceState, Tick, Spawn, Flip, Restart } from "./state";
 import { createRngStreamFromSource, rangeScale, getIndex } from "./util";
 import { render } from "./view";
 
@@ -44,6 +45,7 @@ function flippyBit() {
         "Digit7",
         "Digit8",
     ];
+
     const tick$: Observable<Action> = interval(Constants.TICK_RATE_MS).pipe(
             map(() => new Tick()),
         ),
@@ -57,13 +59,16 @@ function flippyBit() {
                 filter(({ code }) => code === k),
                 filter(({ repeat }) => !repeat),
             ),
+        restart$: Observable<Action> = keyFlip$("keydown", "KeyR").pipe(
+            map(() => new Restart()),
+        ),
         flips$ = merge(
             ...keys.map((key, index) =>
                 keyFlip$("keydown", key).pipe(map(() => new Flip(index))),
             ),
-            mouseFlip$
+            mouseFlip$,
         ),
-        state$: Observable<State> = merge(tick$, flips$).pipe(scan(reduceState, initialState)),
+        state$: Observable<State> = merge(tick$, flips$, restart$).pipe(scan(reduceState, initialState)),
         click$ = fromEvent(document.body, "mousedown").pipe(take(1));
 
     click$.pipe(switchMap(() => state$)).subscribe(render());
