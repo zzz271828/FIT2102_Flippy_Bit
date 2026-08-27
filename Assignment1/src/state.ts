@@ -67,7 +67,7 @@ function check(
 
 class Tick implements Action {
     apply(s: State): State {
-        if (s.gameEnd) return s;
+        if (s.gameEnd) {return s};
 
         const newPosRects = rectsUpdatePos(s.targetRects, s.velocity);
 

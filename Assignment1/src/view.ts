@@ -23,6 +23,31 @@ const createSvgElement = (
     return elem;
 };
 
+/**
+ * Brings an SVG element to the foreground.
+ * @param elem SVG element to bring to the foreground
+ */
+const bringToForeground = (elem: SVGElement): void => {
+    elem.parentNode?.appendChild(elem);
+};
+
+/**
+ * Displays a SVG element on the canvas. Brings to foreground.
+ * @param elem SVG element to display
+ */
+const show = (elem: SVGElement): void => {
+    elem.setAttribute("visibility", "visible");
+    bringToForeground(elem);
+};
+
+/**
+ * Hides a SVG element on the canvas.
+ * @param elem SVG element to hide
+ */
+const hide = (elem: SVGElement): void => {
+    elem.setAttribute("visibility", "hidden");
+};
+
 const render = (): ((s: State) => void) => {
     const svg = document.querySelector("#svgCanvas") as SVGSVGElement;
 
@@ -102,5 +127,13 @@ const render = (): ((s: State) => void) => {
         });
 
         score!.innerHTML = s.score.toString();
+
+        const gameOver = document.querySelector("#gameOver") as SVGGElement;
+
+        if (s.gameEnd) {
+            show(gameOver);
+        } else {
+            hide(gameOver);
+        }
     };
 };
