@@ -33,6 +33,9 @@ import { initialState, reduceState, Tick, Spawn, Flip, Restart } from "./state";
 import { createRngStreamFromSource, rangeScale, getIndex } from "./util";
 import { render } from "./view";
 
+export const createStateStream = (actions$: Observable<Action>): Observable<State> =>
+    actions$.pipe(scan(reduceState, initialState));
+
 function flippyBit() {
     const svgCanvas = document.querySelector("#svgCanvas") as SVGSVGElement;
     const keys: ReadonlyArray<Key> = [
@@ -69,7 +72,7 @@ function flippyBit() {
             ),
             mouseFlip$,
         ),
-        state$: Observable<State> = merge(tick$, flips$, restart$).pipe(scan(reduceState, initialState)),
+        state$: Observable<State> = createStateStream(merge(tick$, flips$, restart$)),
         click$ = fromEvent(document.body, "mousedown").pipe(take(1));
 
     click$.pipe(switchMap(() => state$)).subscribe(render());
