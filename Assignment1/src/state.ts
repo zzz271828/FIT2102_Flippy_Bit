@@ -1,4 +1,4 @@
-export { initialState, reduceState, Tick, Spawn, Flip, Restart };
+export { initialState, reduceState, Tick, Spawn, Flip, Restart, KillMario };
 
 import {
     State,
@@ -6,6 +6,7 @@ import {
     TargetRect,
     Constants,
     Target,
+    Mario,
     Viewport,
 } from "./types";
 
@@ -19,12 +20,17 @@ const initialState: State = {
     seedVal: Constants.SEED_VAL,
     seedGap: Constants.SEED_GAP,
 
-    tickCount: 0,
+    tickCountSpawn: 0,
+    tickCountMario: 0,
     spawnCount: 0,
 
     nextSpawn: Constants.SPAWN_TO_TICK_MIN,
     playerInput: [0, 0, 0, 0, 0, 0, 0, 0],
     score: 0,
+
+    marioActive: false,
+    marioClicked: false,
+    marioPos: { x: 0, y: 0 },
 };
 
 const reachCheckLine = (targets: ReadonlyArray<TargetRect>) => 
@@ -54,6 +60,18 @@ const generateGap = (seed: number): number =>
         ),
     );
 
+const generateMarioX = (seed: number): number =>
+    Math.floor(rangeScale(RNG.scale(seed), 0, Viewport.CANVAS_WIDTH - Mario.WIDTH));
+
+const generateMarioY = (seed: number): number =>
+    Math.floor(
+        rangeScale(
+            RNG.scale(seed),
+            0,
+            Viewport.CANVAS_HEIGHT - Constants.DIGIT_HEIGHT - Mario.HEIGHT,
+        ),
+    );
+
 function check(
     playerInput: ReadonlyArray<number>,
     rects: ReadonlyArray<TargetRect>,
@@ -69,37 +87,44 @@ class Tick implements Action {
     apply(s: State): State {
         if (s.gameEnd) {return s};
 
-        const newPosRects = rectsUpdatePos(s.targetRects, s.velocity);
-
-        const checkInputRes = check(s.playerInput, newPosRects),
+        const
+            newPosRects = rectsUpdatePos(s.targetRects, s.velocity),
+            checkInputRes = check(s.playerInput, newPosRects),
             newScore = checkInputRes ? s.score + 1 : s.score,
             filterRects = checkInputRes
                 ? newPosRects.slice(1)
                 : newPosRects,
-            newPlayerInput = checkInputRes? Constants.EMPTY_PLAYER_INPUT : s.playerInput;
+            newPlayerInput = checkInputRes? Constants.EMPTY_PLAYER_INPUT : s.playerInput,
+            newTickCountSpawn = s.tickCountSpawn + 1,
+            newTickCountMario = s.marioActive ? s.tickCountMario + 1 : 0,
+            marioExpired = s.marioActive && newTickCountMario >= Constants.MARIO_EXPIRE,
+            marioStillActive = s.marioActive && !marioExpired;
 
         if (reachCheckLine(filterRects)) return {...s, gameEnd: true};
 
-        const newTickCount = s.tickCount + 1;
 
 
-        if (newTickCount < s.nextSpawn) {
+        if (newTickCountSpawn < s.nextSpawn) {
             const newState = {
                 ...s,
                 targetRects: filterRects,
-                tickCount: newTickCount,
+                tickCountSpawn: newTickCountSpawn,
                 score: newScore,
                 playerInput: newPlayerInput,
+                tickCountMario: marioStillActive ? newTickCountMario : 0,
+                marioActive: marioStillActive,
             };
             return newState;
-        } 
+        }
 
-        const 
+        const
             newSpawnCount = s.spawnCount + 1,
-            checkAccRes = newSpawnCount >= Constants.ACC_COUNT;
-
-        const newSeedVal = RNG.hash(s.seedVal),
+            checkAccRes = newSpawnCount >= Constants.ACC_COUNT,
+            chackMarioSpawnRes = newSpawnCount >= Constants.MARIO_SPAWN_COUNT,
+            newSeedVal = RNG.hash(s.seedVal),
             newSeedGap = RNG.hash(s.seedGap),
+            marioSeedX = RNG.hash(newSeedGap),
+            marioSeedY = RNG.hash(marioSeedX),
             newTarget: TargetRect = {
                 y: Constants.SPAWN_Y,
                 value: generateValue(newSeedVal),
@@ -109,12 +134,18 @@ class Tick implements Action {
                 targetRects: [...filterRects, newTarget],
                 seedVal: newSeedVal,
                 seedGap: newSeedGap,
-                tickCount: 0,
+                tickCountSpawn: 0,
                 nextSpawn: generateGap(newSeedGap),
                 score: newScore,
                 playerInput: newPlayerInput,
                 velocity: checkAccRes? s.velocity + Constants.ACCELERATION: s.velocity,
-                spawnCount: checkAccRes? 0: newSpawnCount
+                spawnCount: checkAccRes && chackMarioSpawnRes ? 0: newSpawnCount,
+                tickCountMario: chackMarioSpawnRes ? 0 : (marioStillActive ? newTickCountMario : 0),
+                marioActive: chackMarioSpawnRes || marioStillActive,
+                marioClicked: chackMarioSpawnRes ? false : s.marioClicked,
+                marioPos: chackMarioSpawnRes
+                    ? { x: generateMarioX(marioSeedX), y: generateMarioY(marioSeedY) }
+                    : s.marioPos,
             };
 
         return newState;
@@ -126,6 +157,18 @@ class Spawn implements Action {
 
     apply(s: State): State {
         return { ...s, targetRects: [...s.targetRects, this.target] };
+    }
+}
+
+class KillMario implements Action {
+    apply(s: State): State {
+        if (s.gameEnd || !s.marioActive || s.marioClicked || s.targetRects.length === 0) return s;
+
+        return {
+            ...s,
+            targetRects: s.targetRects.slice(1),
+            marioClicked: true,
+        };
     }
 }
 

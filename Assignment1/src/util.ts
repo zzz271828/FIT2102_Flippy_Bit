@@ -2,7 +2,7 @@ import { Observable } from "rxjs";
 import { scan, map } from "rxjs/operators";
 import {State} from "./types"
 
-export { RNG, createRngStreamFromSource, rangeScale, getIndex };
+export { RNG, createRngStreamFromSource, rangeScale, getIndex, isKillMario };
 
 /** random number **/
 /**
@@ -54,5 +54,10 @@ function getIndex(event: MouseEvent): number | null {
         return index === null ? null : Number(index);
     }
     return null;
+}
+
+function isKillMario(event: MouseEvent): boolean {
+    const target = event.target;
+    return target instanceof SVGElement && target.getAttribute("mario") === "true";
 }
 

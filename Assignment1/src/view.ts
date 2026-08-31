@@ -1,4 +1,6 @@
-import { State, Viewport, Target, Constants } from "./types";
+import { State, Viewport, Target, Mario, Constants } from "./types";
+import marioNotDeadUrl from "../images/MarioNotDead.png";
+import marioDeadUrl from "../images/MarioDead.png";
 
 export { render };
 
@@ -58,12 +60,14 @@ const render = (): ((s: State) => void) => {
 
     const targets = createSvgElement(svg.namespaceURI, "g"), // group
           bits = createSvgElement(svg.namespaceURI, "g"), // the thing is that if we don't add this, then we are creating a et of bits everytick and never remove
+          mario = createSvgElement(svg.namespaceURI, "g"),
           digitWidth = Viewport.CANVAS_WIDTH / Constants.DIGIT_COUNT,
           score = document.getElementById("scoreText");
 
 
     svg.appendChild(targets);
     svg.appendChild(bits);
+    svg.appendChild(mario);
 
     /**
      * Renders the current state to the canvas.
@@ -75,6 +79,7 @@ const render = (): ((s: State) => void) => {
     return (s: State) => {
         targets.replaceChildren();
         bits.replaceChildren();
+        mario.replaceChildren();
         // Draw rectangle
         s.targetRects.forEach(rect => {
             const shape = createSvgElement(svg.namespaceURI, "rect", {
@@ -106,7 +111,7 @@ const render = (): ((s: State) => void) => {
         Array.from({ length: Constants.DIGIT_COUNT }).forEach((_, i) => {
             const bit = createSvgElement(svg.namespaceURI, "rect", {
                 x: `${i * digitWidth + 4}`,
-                y: `${Viewport.CANVAS_HEIGHT - 50}`,
+                y: `${Viewport.CANVAS_HEIGHT - Constants.DIGIT_HEIGHT}`,
                 width: `${digitWidth - 8}`,
                 height: "40",
                 fill: "#ef9a9a",
@@ -126,6 +131,19 @@ const render = (): ((s: State) => void) => {
             bits.appendChild(bit);
             bits.appendChild(bitText);
         });
+
+        if (s.marioActive) {
+            const marioImage = createSvgElement(svg.namespaceURI, "image", {
+                x: `${s.marioPos.x}`,
+                y: `${s.marioPos.y}`,
+                width: `${Mario.WIDTH}`,
+                height: `${Mario.HEIGHT}`,
+                href: s.marioClicked ? marioDeadUrl : marioNotDeadUrl,
+                "mario": "true",
+                style: "cursor: pointer;",
+            });
+            mario.appendChild(marioImage);
+        }
 
         score!.innerHTML = s.score.toString();
 

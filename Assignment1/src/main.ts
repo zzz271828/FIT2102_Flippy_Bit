@@ -29,8 +29,8 @@ import {
 } from "rxjs";
 
 import { Action, State, TargetRect, Event, Key, Constants } from "./types";
-import { initialState, reduceState, Tick, Spawn, Flip, Restart } from "./state";
-import { createRngStreamFromSource, rangeScale, getIndex } from "./util";
+import { initialState, reduceState, Tick, Spawn, Flip, Restart, KillMario } from "./state";
+import { createRngStreamFromSource, rangeScale, getIndex, isKillMario } from "./util";
 import { render } from "./view";
 
 export const createStateStream = (actions$: Observable<Action>): Observable<State> =>
@@ -58,6 +58,10 @@ function flippyBit() {
             filter(index => index !== null),
             map(index => new Flip(index))
         ),
+        killMarioClick$: Observable<Action> = fromEvent<MouseEvent>(svgCanvas, "mousedown").pipe(
+            filter(isKillMario),
+            map(() => new KillMario()),
+        ),
         keyFlip$ = (e: Event, k: Key) =>
             fromEvent<KeyboardEvent>(document, e).pipe(
                 filter(({ code }) => code === k),
@@ -72,7 +76,7 @@ function flippyBit() {
             ),
             mouseFlip$,
         ),
-        state$: Observable<State> = createStateStream(merge(tick$, flips$, restart$)),
+        state$: Observable<State> = createStateStream(merge(tick$, flips$, restart$, killMarioClick$)),
         click$ = fromEvent(document.body, "mousedown").pipe(take(1));
 
     click$.pipe(switchMap(() => state$)).subscribe(render());
