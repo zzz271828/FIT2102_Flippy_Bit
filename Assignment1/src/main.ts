@@ -46,7 +46,8 @@ function flippyBit() {
         "Digit8",
     ];
 
-    const tick$: Observable<Action> = interval(Constants.TICK_RATE_MS).pipe(
+    const 
+        tick$: Observable<Action> = interval(Constants.TICK_RATE_MS).pipe(
             map(() => new Tick()),
         ),
         mouseFlip$ = fromEvent<MouseEvent>(svgCanvas, "mousedown").pipe(

@@ -71,15 +71,16 @@ class Tick implements Action {
 
         const newPosRects = rectsUpdatePos(s.targetRects, s.velocity);
 
-        if (reachCheckLine(newPosRects)) return {...s, gameEnd: true};
-
         const checkInputRes = check(s.playerInput, newPosRects),
             newScore = checkInputRes ? s.score + 1 : s.score,
             filterRects = checkInputRes
                 ? newPosRects.slice(1)
                 : newPosRects,
-            newTickCount = s.tickCount + 1,
             newPlayerInput = checkInputRes? Constants.EMPTY_PLAYER_INPUT : s.playerInput;
+
+        if (reachCheckLine(filterRects)) return {...s, gameEnd: true};
+
+        const newTickCount = s.tickCount + 1;
 
 
         if (newTickCount < s.nextSpawn) {
