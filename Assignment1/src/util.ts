@@ -1,6 +1,6 @@
 import { Observable } from "rxjs";
 import { scan, map } from "rxjs/operators";
-import {State} from "./types"
+import { State } from "./types";
 
 export { RNG, createRngStreamFromSource, rangeScale, getIndex, isKillMario };
 
@@ -22,7 +22,6 @@ abstract class RNG {
         (2 * hash) / (RNG.m - 1) - 1; // in [-1, 1]
 }
 
-
 /**
  * Converts values in a stream to random numbers in the range [-1, 1]
  *
@@ -42,7 +41,6 @@ function createRngStreamFromSource<T>(source$: Observable<T>) {
     };
 }
 
-
 function rangeScale(num: number, floor: number, ceiling: number): number {
     return floor + ((num + 1) / 2) * (ceiling - floor);
 }
@@ -58,6 +56,7 @@ function getIndex(event: MouseEvent): number | null {
 
 function isKillMario(event: MouseEvent): boolean {
     const target = event.target;
-    return target instanceof SVGElement && target.getAttribute("mario") === "true";
+    return (
+        target instanceof SVGElement && target.getAttribute("mario") === "true"
+    );
 }
-

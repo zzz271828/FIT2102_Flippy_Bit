@@ -30,13 +30,31 @@ import {
 } from "rxjs";
 
 import { Action, State, TargetRect, Event, Key, Constants } from "./types";
-import { initialState, reduceState, Tick, Spawn, Flip, Restart, KillMario, Pause } from "./state";
-import { createRngStreamFromSource, rangeScale, getIndex, isKillMario } from "./util";
+import {
+    initialState,
+    reduceState,
+    Tick,
+    Spawn,
+    Flip,
+    Restart,
+    KillMario,
+    Pause,
+} from "./state";
+import {
+    createRngStreamFromSource,
+    rangeScale,
+    getIndex,
+    isKillMario,
+} from "./util";
 import { render } from "./view";
 
 // this function exist because it's in the template of the test files to test if state exist
-export const createStateStream = (actions$: Observable<Action>): Observable<State> =>
-    actions$.pipe(scan((acc, action) => reduceState(acc, action), initialState));
+export const createStateStream = (
+    actions$: Observable<Action>,
+): Observable<State> =>
+    actions$.pipe(
+        scan((acc, action) => reduceState(acc, action), initialState),
+    );
 
 function flippyBit() {
     const svgCanvas = document.querySelector("#svgCanvas") as SVGSVGElement;
@@ -51,16 +69,18 @@ function flippyBit() {
         "Digit8",
     ];
 
-    const 
-        tick$: Observable<Action> = interval(Constants.TICK_RATE_MS).pipe(
+    const tick$: Observable<Action> = interval(Constants.TICK_RATE_MS).pipe(
             map(() => new Tick()),
         ),
         mouseFlip$ = fromEvent<MouseEvent>(svgCanvas, "mousedown").pipe(
             map(getIndex), // could be number or null
             filter(index => index !== null),
-            map(index => new Flip(index))
+            map(index => new Flip(index)),
         ),
-        killMarioClick$: Observable<Action> = fromEvent<MouseEvent>(svgCanvas, "mousedown").pipe(
+        killMarioClick$: Observable<Action> = fromEvent<MouseEvent>(
+            svgCanvas,
+            "mousedown",
+        ).pipe(
             filter(isKillMario),
             map(() => new KillMario()),
         ),
@@ -81,7 +101,13 @@ function flippyBit() {
             ),
             mouseFlip$,
         ),
-        action$: Observable<Action> = merge(tick$, flips$, restart$, killMarioClick$, pause$),
+        action$: Observable<Action> = merge(
+            tick$,
+            flips$,
+            restart$,
+            killMarioClick$,
+            pause$,
+        ),
         state$: Observable<State> = createStateStream(action$),
         click$ = fromEvent(document.body, "mousedown").pipe(take(1));
 

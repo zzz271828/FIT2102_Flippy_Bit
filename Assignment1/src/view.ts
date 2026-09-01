@@ -59,11 +59,10 @@ const render = (): ((s: State) => void) => {
     );
 
     const targets = createSvgElement(svg.namespaceURI, "g"), // group
-          bits = createSvgElement(svg.namespaceURI, "g"), // the thing is that if we don't add this, then we are creating a et of bits everytick and never remove
-          mario = createSvgElement(svg.namespaceURI, "g"),
-          digitWidth = Viewport.CANVAS_WIDTH / Constants.DIGIT_COUNT,
-          score = document.getElementById("scoreText");
-
+        bits = createSvgElement(svg.namespaceURI, "g"), // the thing is that if we don't add this, then we are creating a et of bits everytick and never remove
+        mario = createSvgElement(svg.namespaceURI, "g"),
+        digitWidth = Viewport.CANVAS_WIDTH / Constants.DIGIT_COUNT,
+        score = document.getElementById("scoreText");
 
     svg.appendChild(targets);
     svg.appendChild(bits);
@@ -107,7 +106,6 @@ const render = (): ((s: State) => void) => {
             targets.appendChild(text);
         });
 
-
         Array.from({ length: Constants.DIGIT_COUNT }).forEach((_, i) => {
             const bit = createSvgElement(svg.namespaceURI, "rect", {
                 x: `${i * digitWidth + 4}`,
@@ -117,7 +115,7 @@ const render = (): ((s: State) => void) => {
                 fill: "#ef9a9a",
                 stroke: "black",
                 "stroke-width": "2",
-                "index": i.toString(),
+                index: i.toString(),
             });
             const bitText = createSvgElement(svg.namespaceURI, "text", {
                 x: `${i * digitWidth + digitWidth / 2}`,
@@ -139,7 +137,7 @@ const render = (): ((s: State) => void) => {
                 width: `${Mario.WIDTH}`,
                 height: `${Mario.HEIGHT}`,
                 href: s.marioClicked ? marioDeadUrl : marioNotDeadUrl,
-                "mario": "true",
+                mario: "true",
                 style: "cursor: pointer;",
             });
             mario.appendChild(marioImage);
@@ -150,7 +148,7 @@ const render = (): ((s: State) => void) => {
         const gameOver = document.querySelector("#gameOver") as SVGGElement;
         const gamePause = document.querySelector("#gamePause") as SVGGElement;
 
-        s.gameEnd? show(gameOver):hide(gameOver);
-        s.gamePause? show(gamePause):hide(gamePause);
+        s.gameEnd ? show(gameOver) : hide(gameOver);
+        s.gamePause ? show(gamePause) : hide(gamePause);
     };
 };
