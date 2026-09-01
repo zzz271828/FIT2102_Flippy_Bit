@@ -148,11 +148,9 @@ const render = (): ((s: State) => void) => {
         score!.innerHTML = s.score.toString();
 
         const gameOver = document.querySelector("#gameOver") as SVGGElement;
+        const gamePause = document.querySelector("#gamePause") as SVGGElement;
 
-        if (s.gameEnd) {
-            show(gameOver);
-        } else {
-            hide(gameOver);
-        }
+        s.gameEnd? show(gameOver):hide(gameOver);
+        s.gamePause? show(gamePause):hide(gamePause);
     };
 };

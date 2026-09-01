@@ -16,6 +16,7 @@ import "./style.css";
 
 import {
     Observable,
+    Subscription,
     catchError,
     filter,
     fromEvent,
@@ -29,12 +30,13 @@ import {
 } from "rxjs";
 
 import { Action, State, TargetRect, Event, Key, Constants } from "./types";
-import { initialState, reduceState, Tick, Spawn, Flip, Restart, KillMario } from "./state";
+import { initialState, reduceState, Tick, Spawn, Flip, Restart, KillMario, Pause } from "./state";
 import { createRngStreamFromSource, rangeScale, getIndex, isKillMario } from "./util";
 import { render } from "./view";
 
+// this function exist because it's in the template of the test files to test if state exist
 export const createStateStream = (actions$: Observable<Action>): Observable<State> =>
-    actions$.pipe(scan(reduceState, initialState));
+    actions$.pipe(scan((acc, action) => reduceState(acc, action), initialState));
 
 function flippyBit() {
     const svgCanvas = document.querySelector("#svgCanvas") as SVGSVGElement;
@@ -70,16 +72,22 @@ function flippyBit() {
         restart$: Observable<Action> = keyFlip$("keydown", "KeyR").pipe(
             map(() => new Restart()),
         ),
+        pause$: Observable<Action> = keyFlip$("keydown", "Space").pipe(
+            map(() => new Pause()),
+        ),
         flips$ = merge(
             ...keys.map((key, index) =>
                 keyFlip$("keydown", key).pipe(map(() => new Flip(index))),
             ),
             mouseFlip$,
         ),
-        state$: Observable<State> = createStateStream(merge(tick$, flips$, restart$, killMarioClick$)),
+        action$: Observable<Action> = merge(tick$, flips$, restart$, killMarioClick$, pause$),
+        state$: Observable<State> = createStateStream(action$),
         click$ = fromEvent(document.body, "mousedown").pipe(take(1));
 
-    click$.pipe(switchMap(() => state$)).subscribe(render());
+    const subscription: Subscription = click$
+        .pipe(switchMap(() => state$))
+        .subscribe(render());
 }
 
 // The following simply runs your main function on window load.  Make sure to leave it in place.

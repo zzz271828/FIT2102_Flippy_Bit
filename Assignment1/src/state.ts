@@ -1,4 +1,4 @@
-export { initialState, reduceState, Tick, Spawn, Flip, Restart, KillMario };
+export { initialState, reduceState, Tick, Spawn, Flip, Restart, KillMario, Pause };
 
 import {
     State,
@@ -14,6 +14,7 @@ import { RNG, createRngStreamFromSource, rangeScale } from "./util";
 
 const initialState: State = {
     gameEnd: false,
+    gamePause: false,
     targetRects: [],
     velocity: Constants.VELOCITY,
 
@@ -85,7 +86,7 @@ function check(
 
 class Tick implements Action {
     apply(s: State): State {
-        if (s.gameEnd) {return s};
+        if (s.gameEnd || s.gamePause) {return s};
 
         const
             newPosRects = rectsUpdatePos(s.targetRects, s.velocity),
@@ -173,7 +174,7 @@ class KillMario implements Action {
 }
 
 class Flip implements Action {
-    constructor(private readonly index: number) {} // starts from 0 mf
+    constructor(private readonly index: number) {} // starts from 0
     apply(s: State): State {
         const newbits = s.playerInput.map((bit, index) =>
             index === this.index ? 1 - bit : bit,
@@ -188,7 +189,15 @@ class Restart implements Action {
     }
 }
 
-// TODO: i don't know why add this but it's from the workshop game. they added this and it works nice
+class Pause implements Action {
+    apply(s: State): State {
+        return {
+            ...s,
+            gamePause: !s.gamePause,
+        };
+    }
+}
+
 const reduceState = (s: State, action: Action): State => action.apply(s);
 
 /**

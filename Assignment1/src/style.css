@@ -99,3 +99,9 @@ svg rect {
     font-weight: bolder;
     text-align: center;
 }
+
+#gamePause {
+    font-size: 1.3em;
+    font-weight: bolder;
+    text-align: center;
+}

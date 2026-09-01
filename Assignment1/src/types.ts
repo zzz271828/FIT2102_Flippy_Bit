@@ -48,6 +48,7 @@ type TargetRect = Readonly<{
 // State processing
 type State = Readonly<{
     gameEnd: boolean;
+    gamePause: boolean;
     targetRects: ReadonlyArray<TargetRect>;
     velocity: number;
 
@@ -69,7 +70,7 @@ type State = Readonly<{
 
 type Event = 'keydown' | 'keyup';
 
-type Key = 'Digit1' | 'Digit2' | 'Digit3' | 'Digit4' | 'Digit5' | 'Digit6' | 'Digit7' | 'Digit8' | 'KeyR';
+type Key = 'Digit1' | 'Digit2' | 'Digit3' | 'Digit4' | 'Digit5' | 'Digit6' | 'Digit7' | 'Digit8' | 'KeyR' | 'Space';
 
 /**
  * Actions modify state
