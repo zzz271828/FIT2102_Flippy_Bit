@@ -30,11 +30,12 @@ const initialState: State = {
     seedVal: Constants.SEED_VAL,
     seedGap: Constants.SEED_GAP,
 
-    tickCountSpawn: 0,
+    spawnCountdown: Constants.SPAWN_TO_TICK_MIN,
     tickCountMario: 0,
     spawnCount: 0,
 
-    nextSpawn: Constants.SPAWN_TO_TICK_MIN,
+    penaltySeed: Constants.SEED_PENALTY,
+    marioMissStreak: 0,
     playerInput: [0, 0, 0, 0, 0, 0, 0, 0],
     score: 0,
 
@@ -43,26 +44,36 @@ const initialState: State = {
     marioPos: { x: 0, y: 0 },
 };
 
-const checkReachLine = (targets: ReadonlyArray<TargetRect>) =>
-    targets.length > 0 &&
-    targets[0].y + Target.HEIGHT >= Viewport.CANVAS_HEIGHT;
+const findLowestTarget = (
+    targets: ReadonlyArray<TargetRect>,
+): TargetRect | undefined =>
+    targets.reduce<TargetRect | undefined>(
+        (lowest, rect) => (lowest === undefined || rect.y > lowest.y ? rect : lowest),
+        undefined,
+    );
+
+const checkReachLine = (targets: ReadonlyArray<TargetRect>): boolean => {
+    const lowest = findLowestTarget(targets);
+    return (
+        lowest !== undefined &&
+        lowest.y + Target.HEIGHT >= Viewport.CANVAS_HEIGHT
+    );
+};
 
 function checkInput(
     playerInput: ReadonlyArray<number>,
-    rects: ReadonlyArray<TargetRect>,
+    lowest: TargetRect | undefined,
 ): boolean {
-    if (rects.length === 0) return false;
+    if (lowest === undefined) return false;
     const playerInputVal = playerInput.reduce((acc, bit) => acc * 2 + bit, 0);
-    const lowestRectVal = rects[0].value;
 
-    return playerInputVal === lowestRectVal;
+    return playerInputVal === lowest.value;
 }
 
 const updateTgtPos = (
     targets: ReadonlyArray<TargetRect>,
-    velocity: number,
 ): ReadonlyArray<TargetRect> =>
-    targets.map(rect => ({ ...rect, y: rect.y + velocity }));
+    targets.map(rect => ({ ...rect, y: rect.y + rect.velocity }));
 
 
 const genTgtVal = (seed: number): number =>
@@ -92,67 +103,108 @@ const genMarioY = (seed: number): number =>
         ),
     );
 
+const genPenaltyIndex = (seed: number, count: number): number =>
+    Math.floor(rangeScale(RNG.scale(seed), 0, count - 1));
+
+const applyMarioPenalty = (
+    targets: ReadonlyArray<TargetRect>,
+    seed: number,
+    missStreak: number,
+): ReadonlyArray<TargetRect> => {
+    if (targets.length === 0) return targets;
+
+    const accRectIndex = genPenaltyIndex(seed, targets.length);
+    const boost = missStreak * Constants.ACCELERATION;
+
+    return targets.map((rect, index) =>
+        index === accRectIndex
+            ? { ...rect, velocity: rect.velocity + boost }
+            : rect,
+    );
+};
+
 class Tick implements Action {
     apply(s: State): State {
         if (s.gameEnd || s.gamePause) {
             return s;
         }
 
-        const 
-            newRectsPos = updateTgtPos(s.targetRects, s.velocity),
-            checkInputRes = checkInput(s.playerInput, newRectsPos),
-            newScore = checkInputRes ? s.score + 1 : s.score, 
-            filterRects = checkInputRes ? newRectsPos.slice(1) : newRectsPos, 
+        const
+            newRectsPos = updateTgtPos(s.targetRects),
+            lowestTarget = findLowestTarget(newRectsPos),
+            checkInputRes = checkInput(s.playerInput, lowestTarget),
+            newScore = checkInputRes ? s.score + 1 : s.score,
+            matchRemovedRects = checkInputRes
+                ? newRectsPos.filter(rect => rect !== lowestTarget)
+                : newRectsPos,
             newPlayerInput = checkInputRes
                 ? Constants.EMPTY_PLAYER_INPUT
                 : s.playerInput,
-            
-            newTickCntSpawn = s.tickCountSpawn + 1,
+
+            newSpawnCountdown = s.spawnCountdown - 1,
             newTickCntMario = s.marioActive ? s.tickCountMario + 1 : 0,
             checkMarioExpRes =
                 s.marioActive && newTickCntMario >= Constants.MARIO_EXPIRE,
-            checkMarioActRes = s.marioActive && !checkMarioExpRes;
+            checkMarioActRes = s.marioActive && !checkMarioExpRes,
+            marioExpiredUnclicked = checkMarioExpRes && !s.marioClicked,
+
+            newMarioMissStreak = marioExpiredUnclicked
+                ? s.marioMissStreak + 1
+                : s.marioMissStreak,
+            newPenaltySeed = marioExpiredUnclicked
+                ? RNG.hash(s.penaltySeed)
+                : s.penaltySeed,
+            filterRects = marioExpiredUnclicked
+                ? applyMarioPenalty(
+                      matchRemovedRects,
+                      newPenaltySeed,
+                      newMarioMissStreak,
+                  )
+                : matchRemovedRects;
 
         if (checkReachLine(filterRects)) return { ...s, gameEnd: true };
 
-        if (newTickCntSpawn < s.nextSpawn) {
+        if (newSpawnCountdown > 0) {
             const newState = {
                 ...s,
                 targetRects: filterRects,
-                tickCountSpawn: newTickCntSpawn,
+                spawnCountdown: newSpawnCountdown,
                 score: newScore,
                 playerInput: newPlayerInput,
                 tickCountMario: checkMarioActRes ? newTickCntMario : 0,
                 marioActive: checkMarioActRes,
+                penaltySeed: newPenaltySeed,
+                marioMissStreak: newMarioMissStreak,
             };
             return newState;
         }
 
         const newSpawnCount = s.spawnCount + 1,
-            checkAccRes = newSpawnCount >= Constants.ACC_COUNT,
-            checkMarioSpawnRes = newSpawnCount >= Constants.MARIO_SPAWN_COUNT,
+            checkAccRes = newSpawnCount % Constants.ACC_COUNT === 0,
+            checkMarioSpawnRes =
+                newSpawnCount % Constants.MARIO_SPAWN_COUNT === 0,
             newSeedVal = RNG.hash(s.seedVal),
             newSeedGap = RNG.hash(s.seedGap),
             marioSeedX = RNG.hash(newSeedGap),
             marioSeedY = RNG.hash(marioSeedX),
+            newVelocity = checkAccRes
+                ? s.velocity + Constants.ACCELERATION
+                : s.velocity,
             newTarget: TargetRect = {
                 y: Constants.SPAWN_Y,
                 value: genTgtVal(newSeedVal),
+                velocity: newVelocity,
             },
             newState = {
                 ...s,
                 targetRects: [...filterRects, newTarget],
                 seedVal: newSeedVal,
                 seedGap: newSeedGap,
-                tickCountSpawn: 0,
-                nextSpawn: genTgtGap(newSeedGap),
+                spawnCountdown: genTgtGap(newSeedGap),
                 score: newScore,
                 playerInput: newPlayerInput,
-                velocity: checkAccRes
-                    ? s.velocity + Constants.ACCELERATION
-                    : s.velocity,
-                spawnCount:
-                    checkAccRes && checkMarioSpawnRes ? 0 : newSpawnCount,
+                velocity: newVelocity,
+                spawnCount: newSpawnCount,
                 tickCountMario: checkMarioSpawnRes
                     ? 0
                     : checkMarioActRes
@@ -166,6 +218,8 @@ class Tick implements Action {
                           y: genMarioY(marioSeedY),
                       }
                     : s.marioPos,
+                penaltySeed: newPenaltySeed,
+                marioMissStreak: newMarioMissStreak,
             };
 
         return newState;
@@ -195,6 +249,7 @@ class KillMario implements Action {
             ...s,
             targetRects: s.targetRects.slice(1),
             marioClicked: true,
+            marioMissStreak: 0,
         };
     }
 }
@@ -229,3 +284,13 @@ class Pause implements Action {
 }
 
 const reduceState = (s: State, action: Action): State => action.apply(s);
+
+/**
+ * 23: 00100011 (3, 7, 8)
+ * DB: 11011011 (1, 2, 4, 5, 7, 8)
+ * 2:  00000010 (7)
+ * B5: 10110101 (1, 3, 4, 6, 8)
+ * 99: 10011001 (1, 4, 5, 8)
+ * 78: 01111000 (2, 3, 4, 5)
+ * 44: 01000100 (2, 6)
+ * */

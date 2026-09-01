@@ -20,17 +20,18 @@ const Mario = {
 
 const Constants = {
     DIGIT_COUNT: 8,
-    TICK_RATE_MS: 20, // Might need to change this!
+    TICK_RATE_MS: 20,
     SPAWN_TO_TICK_MIN: 50,
     SPAWN_TO_TICK_MAX: 150,
     VELOCITY: 0.7,
     SPAWN_Y: 40,
     SEED_VAL: 10,
     SEED_GAP: 11,
+    SEED_PENALTY: 13,
     MAX_VAL: 255,
     EMPTY_PLAYER_INPUT: [0, 0, 0, 0, 0, 0, 0, 0],
     ACC_COUNT: 5, // the accelaration happens every ACC_COUNT spawn
-    MARIO_SPAWN_COUNT: 5,
+    MARIO_SPAWN_COUNT: 3,
     MARIO_EXPIRE: 100,
     DIGIT_HEIGHT: 50,
     ACCELERATION: 0.1,
@@ -41,6 +42,7 @@ type TargetRect = Readonly<{
     // x: number;
     y: number;
     value: number;
+    velocity: number;
 }>;
 
 // State processing
@@ -50,13 +52,14 @@ type State = Readonly<{
     targetRects: ReadonlyArray<TargetRect>;
     velocity: number;
 
-    tickCountSpawn: number;
+    spawnCountdown: number;
     tickCountMario: number;
     spawnCount: number;
     seedVal: number;
 
     seedGap: number;
-    nextSpawn: number;
+    penaltySeed: number;
+    marioMissStreak: number;
 
     playerInput: ReadonlyArray<number>;
     score: number;
