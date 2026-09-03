@@ -98,11 +98,9 @@ const createActionStream = (svgCanvas: SVGSVGElement): Observable<Action> => {
         ),
         // Keeps spawning targets forever, with a random 1-3s gap each time.
         // expand() is used because each wait time depends on the *previous*
-        // one's random seed - it recursively feeds its own output (the next
-        // SpawnSeed) back in as the input for the next timer(), which is
-        // what lets one seed deterministically produce an endless chain of
-        // gaps without any mutable "current seed" variable sitting outside
-        // the stream. the whole thing is wrapped in restart$.pipe(switchMap
+        // one's random seed (it recursively feeds its own output (the next
+        // SpawnSeed) back in as the input for the next timer())
+        //  the whole thing is wrapped in restart$.pipe(switchMap
         // (...)) so pressing R cancels whatever timer was pending and starts
         // a brand new spawn chain from scratch
         spawn$: Observable<Action> = restart$.pipe(
