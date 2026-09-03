@@ -171,7 +171,9 @@ const render = (): ((s: State) => void) => {
         bits = createSvgElement(svg.namespaceURI, "g"),
         mario = createSvgElement(svg.namespaceURI, "g"),
         digitWidth = Viewport.CANVAS_WIDTH / Constants.DIGIT_COUNT,
-        score = document.getElementById("scoreText");
+        score = document.getElementById("scoreText"),
+        gameOver = document.querySelector("#gameOver") as SVGGElement,
+        gamePause = document.querySelector("#gamePause") as SVGGElement;
 
     svg.appendChild(targets);
     svg.appendChild(bits);
@@ -193,10 +195,7 @@ const render = (): ((s: State) => void) => {
         drawDigits(svg.namespaceURI, bits, s, digitWidth);
         drawMario(svg.namespaceURI, mario, s);
 
-        score!.innerHTML = s.score.toString();
-
-        const gameOver = document.querySelector("#gameOver") as SVGGElement;
-        const gamePause = document.querySelector("#gamePause") as SVGGElement;
+        score!.textContent = s.score.toString();
 
         s.gameEnd ? show(gameOver) : hide(gameOver);
         s.gamePause ? show(gamePause) : hide(gamePause);

@@ -54,7 +54,7 @@ other numbers, etc."), extended with our own twist: missing it gets
 progressively more costly, which is what makes it non-trivial rather than a
 one-off speed bump.
 
-Every 5 target spawns (`Constants.MARIO_SPAWN_COUNT`), a Mario sprite spawns
+Every 3 target spawns (`Constants.MARIO_SPAWN_COUNT`), a Mario sprite spawns
 at a random position on the canvas (`marioPos`, generated with its own RNG
 seed chain, independent of the seeds used for target values/gaps). Mario
 stays on screen for a limited window (`Constants.MARIO_EXPIRE` ticks, ~2
@@ -79,19 +79,21 @@ This whole feature is tracked via extra fields on `State` —
 `Tick` reducer that drives the rest of the game loop, with no separate
 subscription or side-effecting code path.
 
-**Clicking Mario when no targets are on screen:** `KillMario` is a no-op in
-this case. The guard in `KillMario.apply` (`src/state.ts`) checks
-`s.targetRects.length === 0` and, if so, returns the state unchanged — there
-is no lowest target to remove, so nothing is removed, `marioClicked` stays
-`false`, and `marioMissStreak` is **not** reset. Mario remains active and
-keeps counting down to `Constants.MARIO_EXPIRE`; if no target has spawned by
-then, it still expires as a miss (since `marioClicked` was never set to
-`true`) and the miss-streak penalty is applied as normal.
+**Clicking Mario when no targets are on screen:** the click still counts —
+`marioClicked` is set to `true` and `marioMissStreak` resets to 0, same as a
+normal catch. There is just no target to remove as a reward, since
+`s.targetRects.slice(1)` on an empty array is a no-op. This is kinder to the
+player than silently ignoring the click.
 
 ### Checkline (game-over condition)
 
 The "checkline" is the bottom edge of the play area — `Viewport.CANVAS_HEIGHT`
-in `src/types.ts`. Each `Tick`, after targets have moved and Mario's lifecycle
+in `src/types.ts` (y = 400px). There's no separate line drawn on the canvas
+for this; it's simply the bottom edge of the SVG viewBox, which is why it
+visually overlaps the digit-input row (drawn over the bottom
+`Constants.DIGIT_HEIGHT` = 50px of the canvas, i.e. from y = 350 down).
+
+Each `Tick`, after targets have moved and Mario's lifecycle
 has been processed, `checkReachLine` (`src/state.ts`) finds the lowest (i.e.
 furthest-fallen) target on screen via `findLowestTarget` and checks whether
 its bottom edge has reached or crossed the checkline:
