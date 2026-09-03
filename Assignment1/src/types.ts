@@ -53,7 +53,8 @@ type State = Readonly<{
     velocity: number;
 
     spawnCountdown: number;
-    tickCountMario: number;
+    tickCount: number;
+    marioActivatedTick: number;
     spawnCount: number;
     seedVal: number;
 

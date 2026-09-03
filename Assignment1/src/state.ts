@@ -31,7 +31,8 @@ const initialState: State = {
     seedGap: Constants.SEED_GAP,
 
     spawnCountdown: Constants.SPAWN_TO_TICK_MIN,
-    tickCountMario: 0,
+    tickCount: 0,
+    marioActivatedTick: 0,
     spawnCount: 0,
 
     penaltySeed: Constants.SEED_PENALTY,
@@ -48,7 +49,8 @@ const findLowestTarget = (
     targets: ReadonlyArray<TargetRect>,
 ): TargetRect | undefined =>
     targets.reduce<TargetRect | undefined>(
-        (lowest, rect) => (lowest === undefined || rect.y > lowest.y ? rect : lowest),
+        (lowest, rect) =>
+            lowest === undefined || rect.y > lowest.y ? rect : lowest,
         undefined,
     );
 
@@ -75,10 +77,8 @@ const updateTgtPos = (
 ): ReadonlyArray<TargetRect> =>
     targets.map(rect => ({ ...rect, y: rect.y + rect.velocity }));
 
-
 const genTgtVal = (seed: number): number =>
     Math.floor(rangeScale(RNG.scale(seed), 0, Constants.MAX_VAL));
-
 
 const genTgtGap = (seed: number): number =>
     Math.floor(
@@ -123,106 +123,103 @@ const applyMarioPenalty = (
     );
 };
 
+const applyMatch = (s: State): State => {
+    const movedRects = updateTgtPos(s.targetRects),
+        lowestTarget = findLowestTarget(movedRects),
+        matched = checkInput(s.playerInput, lowestTarget);
+
+    return {
+        ...s,
+        targetRects: matched
+            ? movedRects.filter(rect => rect !== lowestTarget)
+            : movedRects,
+        score: matched ? s.score + 1 : s.score,
+        playerInput: matched ? Constants.EMPTY_PLAYER_INPUT : s.playerInput,
+    };
+};
+
+const applyMarioLifeCyc = (s: State): State => {
+    const newTickCount = s.tickCount + 1,
+        expired =
+            s.marioActive &&
+            newTickCount - s.marioActivatedTick >= Constants.MARIO_EXPIRE,
+        stillActive = s.marioActive && !expired,
+        missedUnclicked = expired && !s.marioClicked,
+        newMissStreak = missedUnclicked
+            ? s.marioMissStreak + 1
+            : s.marioMissStreak,
+        newPenaltySeed = missedUnclicked
+            ? RNG.hash(s.penaltySeed)
+            : s.penaltySeed;
+
+    return {
+        ...s,
+        targetRects: missedUnclicked
+            ? applyMarioPenalty(s.targetRects, newPenaltySeed, newMissStreak)
+            : s.targetRects,
+        tickCount: newTickCount,
+        marioActive: stillActive,
+        marioMissStreak: newMissStreak,
+        penaltySeed: newPenaltySeed,
+    };
+};
+
+const trySpawn = (s: State): State => {
+    const newSpawnCountdown = s.spawnCountdown - 1;
+
+    if (newSpawnCountdown > 0) {
+        return { ...s, spawnCountdown: newSpawnCountdown };
+    }
+
+    const newSpawnCount = s.spawnCount + 1,
+        checkAccRes = newSpawnCount % Constants.ACC_COUNT === 0,
+        checkMarioSpawnRes = newSpawnCount % Constants.MARIO_SPAWN_COUNT === 0,
+        newSeedVal = RNG.hash(s.seedVal),
+        newSeedGap = RNG.hash(s.seedGap),
+        marioSeedX = RNG.hash(newSeedGap),
+        marioSeedY = RNG.hash(marioSeedX),
+        newVelocity = checkAccRes
+            ? s.velocity + Constants.ACCELERATION
+            : s.velocity,
+        newTarget: TargetRect = {
+            y: Constants.SPAWN_Y,
+            value: genTgtVal(newSeedVal),
+            velocity: newVelocity,
+        };
+
+    return {
+        ...s,
+        targetRects: [...s.targetRects, newTarget],
+        seedVal: newSeedVal,
+        seedGap: newSeedGap,
+        spawnCountdown: genTgtGap(newSeedGap),
+        velocity: newVelocity,
+        spawnCount: newSpawnCount,
+        marioActivatedTick: checkMarioSpawnRes
+            ? s.tickCount
+            : s.marioActivatedTick,
+        marioActive: checkMarioSpawnRes || s.marioActive,
+        marioClicked: checkMarioSpawnRes ? false : s.marioClicked,
+        marioPos: checkMarioSpawnRes
+            ? {
+                  x: genMarioX(marioSeedX),
+                  y: genMarioY(marioSeedY),
+              }
+            : s.marioPos,
+    };
+};
+
 class Tick implements Action {
     apply(s: State): State {
         if (s.gameEnd || s.gamePause) {
             return s;
         }
 
-        const
-            newRectsPos = updateTgtPos(s.targetRects),
-            lowestTarget = findLowestTarget(newRectsPos),
-            checkInputRes = checkInput(s.playerInput, lowestTarget),
-            newScore = checkInputRes ? s.score + 1 : s.score,
-            matchRemovedRects = checkInputRes
-                ? newRectsPos.filter(rect => rect !== lowestTarget)
-                : newRectsPos,
-            newPlayerInput = checkInputRes
-                ? Constants.EMPTY_PLAYER_INPUT
-                : s.playerInput,
+        const timed = applyMarioLifeCyc(applyMatch(s));
 
-            newSpawnCountdown = s.spawnCountdown - 1,
-            newTickCntMario = s.marioActive ? s.tickCountMario + 1 : 0,
-            checkMarioExpRes =
-                s.marioActive && newTickCntMario >= Constants.MARIO_EXPIRE,
-            checkMarioActRes = s.marioActive && !checkMarioExpRes,
-            marioExpiredUnclicked = checkMarioExpRes && !s.marioClicked,
-
-            newMarioMissStreak = marioExpiredUnclicked
-                ? s.marioMissStreak + 1
-                : s.marioMissStreak,
-            newPenaltySeed = marioExpiredUnclicked
-                ? RNG.hash(s.penaltySeed)
-                : s.penaltySeed,
-            filterRects = marioExpiredUnclicked
-                ? applyMarioPenalty(
-                      matchRemovedRects,
-                      newPenaltySeed,
-                      newMarioMissStreak,
-                  )
-                : matchRemovedRects;
-
-        if (checkReachLine(filterRects)) return { ...s, gameEnd: true };
-
-        if (newSpawnCountdown > 0) {
-            const newState = {
-                ...s,
-                targetRects: filterRects,
-                spawnCountdown: newSpawnCountdown,
-                score: newScore,
-                playerInput: newPlayerInput,
-                tickCountMario: checkMarioActRes ? newTickCntMario : 0,
-                marioActive: checkMarioActRes,
-                penaltySeed: newPenaltySeed,
-                marioMissStreak: newMarioMissStreak,
-            };
-            return newState;
-        }
-
-        const newSpawnCount = s.spawnCount + 1,
-            checkAccRes = newSpawnCount % Constants.ACC_COUNT === 0,
-            checkMarioSpawnRes =
-                newSpawnCount % Constants.MARIO_SPAWN_COUNT === 0,
-            newSeedVal = RNG.hash(s.seedVal),
-            newSeedGap = RNG.hash(s.seedGap),
-            marioSeedX = RNG.hash(newSeedGap),
-            marioSeedY = RNG.hash(marioSeedX),
-            newVelocity = checkAccRes
-                ? s.velocity + Constants.ACCELERATION
-                : s.velocity,
-            newTarget: TargetRect = {
-                y: Constants.SPAWN_Y,
-                value: genTgtVal(newSeedVal),
-                velocity: newVelocity,
-            },
-            newState = {
-                ...s,
-                targetRects: [...filterRects, newTarget],
-                seedVal: newSeedVal,
-                seedGap: newSeedGap,
-                spawnCountdown: genTgtGap(newSeedGap),
-                score: newScore,
-                playerInput: newPlayerInput,
-                velocity: newVelocity,
-                spawnCount: newSpawnCount,
-                tickCountMario: checkMarioSpawnRes
-                    ? 0
-                    : checkMarioActRes
-                      ? newTickCntMario
-                      : 0,
-                marioActive: checkMarioSpawnRes || checkMarioActRes,
-                marioClicked: checkMarioSpawnRes ? false : s.marioClicked,
-                marioPos: checkMarioSpawnRes
-                    ? {
-                          x: genMarioX(marioSeedX),
-                          y: genMarioY(marioSeedY),
-                      }
-                    : s.marioPos,
-                penaltySeed: newPenaltySeed,
-                marioMissStreak: newMarioMissStreak,
-            };
-
-        return newState;
+        return checkReachLine(timed.targetRects)
+            ? { ...s, gameEnd: true }
+            : trySpawn(timed);
     }
 }
 

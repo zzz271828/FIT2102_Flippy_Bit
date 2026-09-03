@@ -50,6 +50,103 @@ const hide = (elem: SVGElement): void => {
     elem.setAttribute("visibility", "hidden");
 };
 
+/**
+ * Draws the falling target rectangles onto the given group element.
+ * @param namespace SVG namespace of the canvas
+ * @param targets Group element to draw the targets into
+ * @param s Current state
+ */
+const drawTargets = (
+    namespace: string | null,
+    targets: SVGElement,
+    s: State,
+): void => {
+    s.targetRects.forEach(rect => {
+        const shape = createSvgElement(namespace, "rect", {
+            x: `${Viewport.CANVAS_WIDTH / 2 - Target.WIDTH / 2}`,
+            y: rect.y.toString(),
+            width: `${Target.WIDTH}`,
+            height: `${Target.HEIGHT}`,
+            rx: "6",
+            fill: "white",
+            stroke: "black",
+            "stroke-width": "2",
+        });
+
+        const text = createSvgElement(namespace, "text", {
+            x: `${Viewport.CANVAS_WIDTH / 2}`,
+            y: `${rect.y + Target.HEIGHT / 2 + 8}`,
+            "text-anchor": "middle",
+            "font-family": "monospace",
+            fill: "black",
+        });
+
+        text.textContent = rect.value.toString(16).toUpperCase();
+
+        targets.appendChild(shape);
+        targets.appendChild(text);
+    });
+};
+
+/**
+ * Draws the player's input digit bits onto the given group element.
+ * @param namespace SVG namespace of the canvas
+ * @param bits Group element to draw the digits into
+ * @param s Current state
+ * @param digitWidth Width of each digit slot
+ */
+const drawDigits = (
+    namespace: string | null,
+    bits: SVGElement,
+    s: State,
+    digitWidth: number,
+): void => {
+    Array.from({ length: Constants.DIGIT_COUNT }).forEach((_, i) => {
+        const bit = createSvgElement(namespace, "rect", {
+            x: `${i * digitWidth + 4}`,
+            y: `${Viewport.CANVAS_HEIGHT - Constants.DIGIT_HEIGHT}`,
+            width: `${digitWidth - 8}`,
+            height: "40",
+            fill: "#ef9a9a",
+            stroke: "black",
+            "stroke-width": "2",
+            index: i.toString(),
+        });
+        const bitText = createSvgElement(namespace, "text", {
+            x: `${i * digitWidth + digitWidth / 2}`,
+            y: `${Viewport.CANVAS_HEIGHT - 22}`,
+            "text-anchor": "middle",
+            "font-family": "monospace",
+            fill: "black",
+            "pointer-events": "none",
+        });
+        bitText.textContent = s.playerInput[i].toString();
+        bits.appendChild(bit);
+        bits.appendChild(bitText);
+    });
+};
+
+/**
+ * Draws Mario onto the given group element, if active.
+ * @param namespace SVG namespace of the canvas
+ * @param mario Group element to draw Mario into
+ * @param s Current state
+ */
+const drawMario = (namespace: string | null, mario: SVGElement, s: State): void => {
+    if (!s.marioActive) return;
+
+    const marioImage = createSvgElement(namespace, "image", {
+        x: `${s.marioPos.x}`,
+        y: `${s.marioPos.y}`,
+        width: `${Mario.WIDTH}`,
+        height: `${Mario.HEIGHT}`,
+        href: s.marioClicked ? marioDeadUrl : marioNotDeadUrl,
+        mario: "true",
+        style: "cursor: pointer;",
+    });
+    mario.appendChild(marioImage);
+};
+
 const render = (): ((s: State) => void) => {
     const svg = document.querySelector("#svgCanvas") as SVGSVGElement;
 
@@ -79,69 +176,10 @@ const render = (): ((s: State) => void) => {
         targets.replaceChildren();
         bits.replaceChildren();
         mario.replaceChildren();
-        // Draw rectangle
-        s.targetRects.forEach(rect => {
-            const shape = createSvgElement(svg.namespaceURI, "rect", {
-                x: `${Viewport.CANVAS_WIDTH / 2 - Target.WIDTH / 2}`,
-                y: rect.y.toString(),
-                width: `${Target.WIDTH}`,
-                height: `${Target.HEIGHT}`,
-                rx: "6",
-                fill: "white",
-                stroke: "black",
-                "stroke-width": "2",
-            });
 
-            const text = createSvgElement(svg.namespaceURI, "text", {
-                x: `${Viewport.CANVAS_WIDTH / 2}`,
-                y: `${rect.y + Target.HEIGHT / 2 + 8}`,
-                "text-anchor": "middle",
-                "font-family": "monospace",
-                fill: "black",
-            });
-
-            text.textContent = rect.value.toString(16).toUpperCase();
-
-            targets.appendChild(shape);
-            targets.appendChild(text);
-        });
-
-        Array.from({ length: Constants.DIGIT_COUNT }).forEach((_, i) => {
-            const bit = createSvgElement(svg.namespaceURI, "rect", {
-                x: `${i * digitWidth + 4}`,
-                y: `${Viewport.CANVAS_HEIGHT - Constants.DIGIT_HEIGHT}`,
-                width: `${digitWidth - 8}`,
-                height: "40",
-                fill: "#ef9a9a",
-                stroke: "black",
-                "stroke-width": "2",
-                index: i.toString(),
-            });
-            const bitText = createSvgElement(svg.namespaceURI, "text", {
-                x: `${i * digitWidth + digitWidth / 2}`,
-                y: `${Viewport.CANVAS_HEIGHT - 22}`,
-                "text-anchor": "middle",
-                "font-family": "monospace",
-                fill: "black",
-                "pointer-events": "none",
-            });
-            bitText.textContent = s.playerInput[i].toString();
-            bits.appendChild(bit);
-            bits.appendChild(bitText);
-        });
-
-        if (s.marioActive) {
-            const marioImage = createSvgElement(svg.namespaceURI, "image", {
-                x: `${s.marioPos.x}`,
-                y: `${s.marioPos.y}`,
-                width: `${Mario.WIDTH}`,
-                height: `${Mario.HEIGHT}`,
-                href: s.marioClicked ? marioDeadUrl : marioNotDeadUrl,
-                mario: "true",
-                style: "cursor: pointer;",
-            });
-            mario.appendChild(marioImage);
-        }
+        drawTargets(svg.namespaceURI, targets, s);
+        drawDigits(svg.namespaceURI, bits, s, digitWidth);
+        drawMario(svg.namespaceURI, mario, s);
 
         score!.innerHTML = s.score.toString();
 
