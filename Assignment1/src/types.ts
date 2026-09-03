@@ -69,8 +69,7 @@ type State = Readonly<{
     marioPos: Readonly<{ x: number; y: number }>;
 }>;
 
-// the seed pair driving spawn$: valSeed produces the target's value,
-// gapSeed produces the wait before the *next* spawn
+
 type SpawnSeed = Readonly<{ valSeed: number; gapSeed: number }>;
 
 type Event = "keydown" | "keyup";

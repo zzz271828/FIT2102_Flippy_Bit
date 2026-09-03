@@ -23,11 +23,8 @@ import { render } from "./view";
 
 /**
  * Turns a stream of Actions into a stream of States, by folding each
- * Action onto the previous State with `reduceState`, starting from
- * `initialState`. This is the "scan" step of the FRP pipeline.
- *
- * Exported separately (not just inlined in flippyBit) because the test
- * template imports it directly to check state.
+ * Action onto the previous State with reduceState, starting from
+ * initialState
  */
 export const createStateStream = (
     actions$: Observable<Action>,

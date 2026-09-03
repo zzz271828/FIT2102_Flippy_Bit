@@ -4,11 +4,6 @@ import marioDeadUrl from "../images/MarioDead.png";
 
 export { render };
 
-/**
- * This file is the "view" of the game: it never changes the State itself,
- * it only reads it and draws it to the SVG canvas. All the DOM/rendering
- * side effects live here, kept separate from the pure state.ts logic.
- */
 
 /**
  * Creates an SVG element with the given properties.
