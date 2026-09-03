@@ -1,5 +1,5 @@
 export { Viewport, Target, Mario, Constants };
-export type { TargetRect, State, Event, Key, Action };
+export type { TargetRect, State, Event, Key, Action, SpawnSeed };
 
 /** Constants */
 
@@ -28,6 +28,7 @@ const Constants = {
     SEED_VAL: 10,
     SEED_GAP: 11,
     SEED_PENALTY: 13,
+    SEED_MARIO: 17,
     MAX_VAL: 255,
     EMPTY_PLAYER_INPUT: [0, 0, 0, 0, 0, 0, 0, 0],
     ACC_COUNT: 5, // the accelaration happens every ACC_COUNT spawn
@@ -52,13 +53,11 @@ type State = Readonly<{
     targetRects: ReadonlyArray<TargetRect>;
     velocity: number;
 
-    spawnCountdown: number;
     tickCount: number;
     marioActivatedTick: number;
     spawnCount: number;
-    seedVal: number;
 
-    seedGap: number;
+    marioSeed: number;
     penaltySeed: number;
     marioMissStreak: number;
 
@@ -69,6 +68,10 @@ type State = Readonly<{
     marioClicked: boolean;
     marioPos: Readonly<{ x: number; y: number }>;
 }>;
+
+// the seed pair driving spawn$: valSeed produces the target's value,
+// gapSeed produces the wait before the *next* spawn
+type SpawnSeed = Readonly<{ valSeed: number; gapSeed: number }>;
 
 type Event = "keydown" | "keyup";
 

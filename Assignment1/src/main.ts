@@ -24,10 +24,7 @@ import { render } from "./view";
 // this function exist because it's in the template of the test files to test if state exist
 export const createStateStream = (
     actions$: Observable<Action>,
-): Observable<State> =>
-    actions$.pipe(
-        scan((acc, action) => reduceState(acc, action), initialState),
-    );
+): Observable<State> => actions$.pipe(scan(reduceState, initialState));
 
 function flippyBit() {
     const svgCanvas = document.querySelector("#svgCanvas") as SVGSVGElement;

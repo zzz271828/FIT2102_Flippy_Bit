@@ -1,8 +1,20 @@
-import { Observable, filter, fromEvent, interval, map, merge } from "rxjs";
+import {
+    Observable,
+    expand,
+    filter,
+    fromEvent,
+    interval,
+    map,
+    merge,
+    share,
+    startWith,
+    switchMap,
+    timer,
+} from "rxjs";
 
-import { Action, Constants, Event, Key } from "./types";
-import { Tick, Flip, Restart, KillMario, Pause } from "./state";
-import { getIndex, isKillMario } from "./util";
+import { Action, Constants, Event, Key, SpawnSeed } from "./types";
+import { Tick, Spawn, Flip, Restart, KillMario, Pause } from "./state";
+import { RNG, getIndex, isKillMario, rangeScale } from "./util";
 
 export { createActionStream };
 
@@ -17,6 +29,18 @@ const KEYS: ReadonlyArray<Key> = [
     "Digit8",
 ];
 
+const genSpawnValue = (seed: number): number =>
+    Math.floor(rangeScale(RNG.scale(seed), 0, Constants.MAX_VAL));
+
+const genSpawnGapMs = (seed: number): number =>
+    Math.floor(
+        rangeScale(
+            RNG.scale(seed),
+            Constants.SPAWN_TO_TICK_MIN * Constants.TICK_RATE_MS,
+            Constants.SPAWN_TO_TICK_MAX * Constants.TICK_RATE_MS,
+        ),
+    );
+
 /**
  * Combines every input source -- the game clock, keyboard, and mouse -- into
  * the single Action stream that drives the game. Everything is built inside
@@ -27,39 +51,69 @@ const createActionStream = (svgCanvas: SVGSVGElement): Observable<Action> => {
     const tick$: Observable<Action> = interval(Constants.TICK_RATE_MS).pipe(
             map(() => new Tick()),
         ),
-        mouseFlip$ = fromEvent<MouseEvent>(svgCanvas, "mousedown").pipe(
+        mousedown$ = fromEvent<MouseEvent>(svgCanvas, "mousedown").pipe(
+            share(),
+        ),
+        mouseFlip$ = mousedown$.pipe(
             map(getIndex), // could be number or null
             filter(index => index !== null),
             map(index => new Flip(index)),
         ),
-        killMarioClick$: Observable<Action> = fromEvent<MouseEvent>(
-            svgCanvas,
-            "mousedown",
-        ).pipe(
+        killMarioClick$: Observable<Action> = mousedown$.pipe(
             filter(isKillMario),
             map(() => new KillMario()),
         ),
-        keyFlip$ = (e: Event, k: Key) =>
+        keyFlip$ = (e: Event) => (k: Key) =>
             fromEvent<KeyboardEvent>(document, e).pipe(
                 filter(({ code }) => code === k),
                 filter(({ repeat }) => !repeat),
             ),
-        restart$: Observable<Action> = keyFlip$("keydown", "KeyR").pipe(
+        keydown$ = keyFlip$("keydown"),
+        restart$: Observable<Action> = keydown$("KeyR").pipe(
             map(() => new Restart()),
         ),
-        pause$: Observable<Action> = keyFlip$("keydown", "Space").pipe(
+        pause$: Observable<Action> = keydown$("Space").pipe(
             map(() => new Pause()),
         ),
         flips$ = merge(
             ...KEYS.map((key, index) =>
-                keyFlip$("keydown", key).pipe(map(() => new Flip(index))),
+                keydown$(key).pipe(map(() => new Flip(index))),
             ),
             mouseFlip$,
+        ),
+        // re-subscribes on every Restart, so the spawn sequence replays from
+        // the same starting seeds instead of continuing where it left off
+        spawn$: Observable<Action> = restart$.pipe(
+            startWith(null),
+            switchMap(() =>
+                timer(
+                    Constants.SPAWN_TO_TICK_MIN * Constants.TICK_RATE_MS,
+                ).pipe(
+                    map(
+                        (): SpawnSeed => ({
+                            valSeed: RNG.hash(Constants.SEED_VAL),
+                            gapSeed: RNG.hash(Constants.SEED_GAP),
+                        }),
+                    ),
+                    expand(seed =>
+                        timer(genSpawnGapMs(seed.gapSeed)).pipe(
+                            map(
+                                (): SpawnSeed => ({
+                                    valSeed: RNG.hash(seed.valSeed),
+                                    gapSeed: RNG.hash(seed.gapSeed),
+                                }),
+                            ),
+                        ),
+                    ),
+                    map(seed => new Spawn(genSpawnValue(seed.valSeed))),
+                ),
+            ),
         ),
         action$: Observable<Action> = merge(
             tick$,
             flips$,
             restart$,
+            spawn$,
             killMarioClick$,
             pause$,
         );
