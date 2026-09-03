@@ -79,6 +79,34 @@ This whole feature is tracked via extra fields on `State` —
 `Tick` reducer that drives the rest of the game loop, with no separate
 subscription or side-effecting code path.
 
+**Clicking Mario when no targets are on screen:** `KillMario` is a no-op in
+this case. The guard in `KillMario.apply` (`src/state.ts`) checks
+`s.targetRects.length === 0` and, if so, returns the state unchanged — there
+is no lowest target to remove, so nothing is removed, `marioClicked` stays
+`false`, and `marioMissStreak` is **not** reset. Mario remains active and
+keeps counting down to `Constants.MARIO_EXPIRE`; if no target has spawned by
+then, it still expires as a miss (since `marioClicked` was never set to
+`true`) and the miss-streak penalty is applied as normal.
+
+### Checkline (game-over condition)
+
+The "checkline" is the bottom edge of the play area — `Viewport.CANVAS_HEIGHT`
+in `src/types.ts`. Each `Tick`, after targets have moved and Mario's lifecycle
+has been processed, `checkReachLine` (`src/state.ts`) finds the lowest (i.e.
+furthest-fallen) target on screen via `findLowestTarget` and checks whether
+its bottom edge has reached or crossed the checkline:
+
+```
+lowest.y + Target.HEIGHT >= Viewport.CANVAS_HEIGHT
+```
+
+If it has, `Tick` sets `gameEnd: true` on the state instead of spawning any
+further targets that tick, which freezes the game (both `Tick` and `Flip`
+short-circuit once `gameEnd` is set) and shows the "Game Over" banner in
+`view.ts`. Only the single lowest target is checked each tick, since it is
+always the first to reach the checkline. Restarting (`R`) is the only action
+that clears `gameEnd`, via `Restart` resetting to `initialState`.
+
 ## Implementing features
 
 There are a few files you may wish to modify. The rest should **not** be modified as they are used for configuring the build.

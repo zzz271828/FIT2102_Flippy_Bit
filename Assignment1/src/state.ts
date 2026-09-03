@@ -215,11 +215,11 @@ class Tick implements Action {
             return s;
         }
 
-        const timed = applyMarioLifeCyc(applyMatch(s));
+        const updatedState = applyMarioLifeCyc(applyMatch(s));
 
-        return checkReachLine(timed.targetRects)
-            ? { ...s, gameEnd: true }
-            : trySpawn(timed);
+        return checkReachLine(updatedState.targetRects)
+            ? { ...updatedState, gameEnd: true }
+            : trySpawn(updatedState);
     }
 }
 
@@ -254,7 +254,7 @@ class KillMario implements Action {
 class Flip implements Action {
     constructor(private readonly index: number) {} // starts from 0
     apply(s: State): State {
-        if (s.gamePause) return s;
+        if (s.gamePause || s.gameEnd) return s;
 
         const newbits = s.playerInput.map((bit, index) =>
             index === this.index ? 1 - bit : bit,
