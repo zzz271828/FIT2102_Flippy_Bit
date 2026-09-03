@@ -4,6 +4,13 @@ import { State } from "./types";
 
 export { RNG, createRngStreamFromSource, rangeScale, getIndex, isKillMario };
 
+/**
+ * Small helpers shared across the app: a seeded random number generator
+ * (so the "random" gameplay is actually reproducible), a helper to map
+ * random numbers into a useful range, and two functions that read info off
+ * of a raw mouse event.
+ */
+
 /** random number **/
 /**
  * A random number generator which provides two pure functions
@@ -41,10 +48,13 @@ function createRngStreamFromSource<T>(source$: Observable<T>) {
     };
 }
 
+// stretches a number from [-1, 1] (RNG.scale's output) out to [floor, ceiling]
 function rangeScale(num: number, floor: number, ceiling: number): number {
     return floor + ((num + 1) / 2) * (ceiling - floor);
 }
 
+// reads the "index" attribute view.ts puts on each digit, so a click on a
+// digit can be turned into "which digit was clicked"
 function getIndex(event: MouseEvent): number | null {
     const target = event.target;
     if (target instanceof SVGElement) {
@@ -54,6 +64,7 @@ function getIndex(event: MouseEvent): number | null {
     return null;
 }
 
+// true if the click landed on the mario image
 function isKillMario(event: MouseEvent): boolean {
     const target = event.target;
     return (

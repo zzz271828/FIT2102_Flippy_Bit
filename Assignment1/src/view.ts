@@ -5,6 +5,12 @@ import marioDeadUrl from "../images/MarioDead.png";
 export { render };
 
 /**
+ * This file is the "view" of the game: it never changes the State itself,
+ * it only reads it and draws it to the SVG canvas. All the DOM/rendering
+ * side effects live here, kept separate from the pure state.ts logic.
+ */
+
+/**
  * Creates an SVG element with the given properties.
  *
  * See https://developer.mozilla.org/en-US/docs/Web/SVG/Element for valid
@@ -132,7 +138,11 @@ const drawDigits = (
  * @param mario Group element to draw Mario into
  * @param s Current state
  */
-const drawMario = (namespace: string | null, mario: SVGElement, s: State): void => {
+const drawMario = (
+    namespace: string | null,
+    mario: SVGElement,
+    s: State,
+): void => {
     if (!s.marioActive) return;
 
     const marioImage = createSvgElement(namespace, "image", {
@@ -147,6 +157,10 @@ const drawMario = (namespace: string | null, mario: SVGElement, s: State): void 
     mario.appendChild(marioImage);
 };
 
+/**
+ * Sets up the canvas once, then returns a function that redraws it for
+ * a given State. Called once per state update (see main.ts).
+ */
 const render = (): ((s: State) => void) => {
     const svg = document.querySelector("#svgCanvas") as SVGSVGElement;
 
@@ -155,8 +169,11 @@ const render = (): ((s: State) => void) => {
         `0 0 ${Viewport.CANVAS_WIDTH} ${Viewport.CANVAS_HEIGHT}`,
     );
 
-    const targets = createSvgElement(svg.namespaceURI, "g"), // group
-        bits = createSvgElement(svg.namespaceURI, "g"), // the thing is that if we don't add this, then we are creating a et of bits everytick and never remove
+    // one group per kind of thing on screen, created once and reused. Their
+    // children get cleared and redrawn every frame below, instead of piling
+    // up new elements forever.
+    const targets = createSvgElement(svg.namespaceURI, "g"),
+        bits = createSvgElement(svg.namespaceURI, "g"),
         mario = createSvgElement(svg.namespaceURI, "g"),
         digitWidth = Viewport.CANVAS_WIDTH / Constants.DIGIT_COUNT,
         score = document.getElementById("scoreText");

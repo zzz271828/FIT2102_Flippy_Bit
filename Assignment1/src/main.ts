@@ -21,7 +21,14 @@ import { initialState, reduceState } from "./state";
 import { createActionStream } from "./observables";
 import { render } from "./view";
 
-// this function exist because it's in the template of the test files to test if state exist
+/**
+ * Turns a stream of Actions into a stream of States, by folding each
+ * Action onto the previous State with `reduceState`, starting from
+ * `initialState`. This is the "scan" step of the FRP pipeline.
+ *
+ * Exported separately (not just inlined in flippyBit) because the test
+ * template imports it directly to check state.
+ */
 export const createStateStream = (
     actions$: Observable<Action>,
 ): Observable<State> => actions$.pipe(scan(reduceState, initialState));
@@ -31,6 +38,8 @@ function flippyBit() {
 
     const action$ = createActionStream(svgCanvas),
         state$: Observable<State> = createStateStream(action$),
+        // wait for the player's first click before the game starts, so the
+        // clock/spawn timers don't run in the background before they can see it
         click$ = fromEvent(document.body, "mousedown").pipe(take(1));
 
     click$.pipe(switchMap(() => state$)).subscribe(render());
