@@ -167,6 +167,7 @@ const applyMarioLifeCyc = (s: State): State => {
 // runs a list of T -> T functions in order, left to right this function is for 
 // avoiding function with the format funciont1(function2(para)).
 // Left-to-right composition: pipe(f, g)(x) is g(f(x))
+// if i don't add this then there will be this line of code: applyMarioLifeCyc(applyMatch(s))
 const pipe =
     <T>(...fns: ReadonlyArray<(t: T) => T>) =>
     (t: T): T =>
